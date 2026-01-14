@@ -1,0 +1,17 @@
+# Rutgers Scheduler v1.3.0 - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Web Framework
+flask>=2.0.0
+
+# HTTP Requests (for Rutgers API and Gemini)
+requests>=2.25.0
+
+# PDF Processing (optional - for catalog scraping)
+pypdf>=3.0.0
+
+# Environment variable management
+python-dotenv>=1.0.0
+
+# Development/Testing (optional)
+pytest>=7.0.0

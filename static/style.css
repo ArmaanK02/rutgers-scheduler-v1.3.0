@@ -1,0 +1,179 @@
+/* Reset & Base Fonts */
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+}
+
+body {
+    background-color: #f0f2f5;
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Center vertically too */
+    height: 100vh;
+}
+
+/* Main Chat Container */
+.chat-container {
+    width: 100%;
+    max-width: 600px; /* Limits width on large screens */
+    height: 90vh; /* Takes up 90% of screen height */
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* Header Section */
+.chat-header {
+    background-color: #cc0033; /* Rutgers Red */
+    color: white;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 10;
+}
+
+.chat-header h1 { font-size: 1.5rem; margin-bottom: 5px; }
+.chat-header p { font-size: 0.9rem; opacity: 0.9; }
+
+/* Chat History Area */
+.chat-box {
+    flex: 1; /* Takes remaining space */
+    padding: 20px;
+    overflow-y: auto; /* Scrollable */
+    background: #e5ddd5; /* WhatsApp-like background color */
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Message Bubbles */
+.message {
+    max-width: 85%;
+    padding: 12px 16px;
+    border-radius: 15px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    font-size: 0.95rem;
+    position: relative;
+}
+
+.user-message {
+    align-self: flex-end;
+    background-color: #dcf8c6; /* Light Green */
+    color: #333;
+    border-bottom-right-radius: 2px;
+}
+
+.bot-message {
+    align-self: flex-start;
+    background-color: #fff;
+    color: #333;
+    border-bottom-left-radius: 2px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.bot-message.error {
+    background-color: #ffe6e6;
+    color: #cc0033;
+    border: 1px solid #ffcccc;
+}
+
+/* Schedule Results Styling */
+.schedule-results {
+    align-self: flex-start;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.schedule-card {
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 5px solid #cc0033;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.schedule-card strong { display: block; margin-bottom: 8px; color: #cc0033; }
+
+.schedule-card ul { list-style: none; padding-left: 0; }
+.schedule-card li { 
+    margin-bottom: 8px; 
+    border-bottom: 1px solid #eee; 
+    padding-bottom: 8px; 
+}
+.schedule-card li:last-child { border-bottom: none; margin-bottom: 0; }
+
+.course-code { font-weight: bold; color: #333; font-size: 1.1em; }
+.section-idx { 
+    font-size: 0.85em; 
+    background: #eee; 
+    padding: 2px 6px; 
+    border-radius: 4px; 
+    margin-left: 8px; 
+    color: #555; 
+}
+.time-slot { display: block; font-size: 0.9em; color: #666; margin-top: 2px; }
+
+/* Input Area */
+.input-area {
+    padding: 15px;
+    background: #f0f0f0;
+    display: flex;
+    gap: 10px;
+    border-top: 1px solid #ddd;
+}
+
+input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 25px;
+    outline: none;
+    font-size: 1rem;
+    transition: border 0.3s;
+}
+
+input:focus { border-color: #cc0033; }
+
+button {
+    background-color: #cc0033;
+    color: white;
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+button:hover { background-color: #a8002b; transform: scale(1.05); }
+button:active { transform: scale(0.95); }
+
+.calendar-grid {
+    display: grid;
+    background-color: #fff;
+    font-family: monospace;
+}
+
+.view-grid-btn {
+    background-color: #eee;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.view-grid-btn:hover {
+    background-color: #ddd;
+}
