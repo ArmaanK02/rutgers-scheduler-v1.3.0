@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scarlet Scheduler</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body class="landing-body">
+    <div class="landing-container">
+        <div class="hero-section">
+            <h1 class="glitch-title">Scarlet Scheduler <span class="version">v2.0</span></h1>
+            <p class="hero-subtitle">The intelligent, AI-powered academic advisor for Rutgers students.</p>
+            
+            <div class="cta-buttons">
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">Login</a>
+                <a href="{{ url_for('register') }}" class="btn btn-outline btn-lg">Create Account</a>
+            </div>
+        </div>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>💬 Natural Language</h3>
+                <p>Just type "I need a schedule with no classes on Fridays" and watch the magic happen.</p>
+            </div>
+            <div class="feature-card">
+                <h3>⚡ Conflict Free</h3>
+                <p>Our algorithms validate thousands of combinations to ensure zero time conflicts.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🌙 Dark Mode</h3>
+                <p>Easy on the eyes for those late-night registration planning sessions.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Degree Progress - Scarlet Scheduler</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="app-body">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fas fa-calendar-alt"></i> Scarlet Scheduler</h3>
+        </div>
+        
+        <div class="nav-links" style="margin-top: 20px;">
+            <a href="{{ url_for('chat_interface') }}" class="nav-item"><i class="fas fa-comments"></i> Chat</a>
+            <a href="{{ url_for('history_dashboard') }}" class="nav-item"><i class="fas fa-history"></i> Course History</a>
+            <a href="{{ url_for('progress_dashboard') }}" class="nav-item active"><i class="fas fa-chart-line"></i> Major Progress</a>
+        </div>
+        
+        <div class="user-profile" style="margin-top: auto;">
+            <div class="user-info">
+                <div class="avatar">{{ user.username[0].upper() }}</div>
+                <span>{{ user.username }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="btn-logout"><i class="fas fa-sign-out-alt"></i></a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="content-header">
+            <h2>Major Progress Tracker</h2>
+        </div>
+
+        <div class="data-card" style="margin-bottom: 30px;">
+            <h3>Select Your Major</h3>
+            <div class="progress-controls">
+                <select id="major-select" class="dropdown-lg">
+                    <option value="">-- Choose a Major --</option>
+                    {% for major in majors %}
+                        <option value="{{ major }}">{{ major }}</option>
+                    {% endfor %}
+                </select>
+                <button onclick="checkProgress()" class="btn btn-primary">Check Progress</button>
+            </div>
+        </div>
+
+        <div id="progress-results" style="display: none;">
+            <div class="data-card">
+                <h3>Overall Progress</h3>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%"></div>
+                </div>
+                <p id="progress-text" style="text-align: right; margin-top: 10px; font-weight: bold;">0% Completed</p>
+            </div>
+
+            <div class="progress-grid">
+                <div class="data-card">
+                    <h4><i class="fas fa-check"></i> Completed Requirements</h4>
+                    <ul class="req-list" id="completed-list"></ul>
+                </div>
+                <div class="data-card">
+                    <h4><i class="fas fa-hourglass-half"></i> Still Needed</h4>
+                    <ul class="req-list" id="remaining-list"></ul>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

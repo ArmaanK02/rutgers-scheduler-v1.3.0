@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Course History - Scarlet Scheduler</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="app-body">
+    
+    <!-- Sidebar (Shared navigation) -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fas fa-calendar-alt"></i> Scarlet Scheduler</h3>
+        </div>
+        
+        <div class="nav-links" style="margin-top: 20px;">
+            <a href="{{ url_for('chat_interface') }}" class="nav-item"><i class="fas fa-comments"></i> Chat</a>
+            <a href="{{ url_for('history_dashboard') }}" class="nav-item active"><i class="fas fa-history"></i> Course History</a>
+            <a href="{{ url_for('progress_dashboard') }}" class="nav-item"><i class="fas fa-chart-line"></i> Major Progress</a>
+        </div>
+        
+        <div class="user-profile" style="margin-top: auto;">
+            <div class="user-info">
+                <div class="avatar">{{ user.username[0].upper() }}</div>
+                <span>{{ user.username }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="btn-logout"><i class="fas fa-sign-out-alt"></i></a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="content-header">
+            <h2>Your Course History</h2>
+            <div class="actions">
+                <button class="btn btn-outline-danger" onclick="clearHistory()">
+                    <i class="fas fa-trash-alt"></i> Clear History
+                </button>
+                <button class="btn btn-outline" onclick="document.getElementById('manual-modal').style.display='flex'">
+                    <i class="fas fa-plus"></i> Add Manual
+                </button>
+                <button class="btn btn-primary" onclick="document.getElementById('import-modal').style.display='flex'">
+                    <i class="fas fa-file-import"></i> Bulk Import
+                </button>
+            </div>
+        </div>
+
+        <div class="data-card">
+            <div class="filters" style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+                <label>Sort By:</label>
+                <select id="sort-key" class="dropdown-lg" style="width: 150px; min-width: 0;" onchange="sortHistory()">
+                    <option value="term">Term</option>
+                    <option value="code">Subject/Code</option>
+                    <option value="credits">Credits</option>
+                    <option value="grade">Grade</option>
+                </select>
+                <select id="sort-order" class="dropdown-lg" style="width: 150px; min-width: 0;" onchange="sortHistory()">
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                </select>
+            </div>
+
+            <table class="data-table" id="history-table">
+                <thead>
+                    <tr>
+                        <th>Term</th>
+                        <th>Course Code</th>
+                        <th>Title (if known)</th>
+                        <th>Credits</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course in history %}
+                        <tr data-term="{{ course.term or '' }}" 
+                            data-code="{{ course.short_code or course.code }}" 
+                            data-credits="{{ course.credits }}" 
+                            data-grade="{{ course.grade }}">
+                            <td>{{ course.term or '-' }}</td>
+                            <td><strong>{{ course.short_code or course.code }}</strong></td>
+                            <td>{{ course.title or 'Unknown' }}</td>
+                            <td>{{ course.credits }}</td>
+                            <td>
+                                <span class="status-badge {{ 'success' if course.grade in ['A', 'B+', 'B', 'PA', 'TR'] else '' }}">
+                                    {{ course.grade or 'Completed' }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    {% if not history %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 30px; color: #888;">
+                                No courses found. Import your history to get started!
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Import Modal (Reused) -->
+    <div id="import-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('import-modal').style.display='none'">&times;</span>
+            <h3>Import Course History</h3>
+            <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 10px;">
+                Go to Degree Navigator -> Course List. Select All (Ctrl+A) and Copy (Ctrl+C). Paste below.
+            </p>
+            <textarea id="history-text" rows="8" placeholder="Fall 2025 01:198:111..."></textarea>
+            <button onclick="uploadHistory()" class="btn btn-primary">Import</button>
+        </div>
+    </div>
+
+    <!-- Manual Add Modal -->
+    <div id="manual-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('manual-modal').style.display='none'">&times;</span>
+            <h3>Add Course Manually</h3>
+            <div class="form-group">
+                <label>Course Code (e.g. 198:111)</label>
+                <input type="text" id="manual-code" placeholder="XXX:YYY">
+            </div>
+            <div class="form-group">
+                <label>Course Title (Optional if valid code)</label>
+                <input type="text" id="manual-title" placeholder="Introduction to...">
+            </div>
+            <div class="form-group">
+                <label>Term</label>
+                <input type="text" id="manual-term" placeholder="Fall 2024">
+            </div>
+            <div class="form-group">
+                <label>Credits</label>
+                <input type="number" id="manual-credits" value="3.0">
+            </div>
+            <div class="form-group">
+                <label>Grade</label>
+                <input type="text" id="manual-grade" placeholder="A, B+, TR">
+            </div>
+            <button onclick="addManualCourse()" class="btn btn-primary">Add Course</button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <style>
+        .btn-outline-danger {
+            background-color: transparent;
+            border: 1px solid #ff4444;
+            color: #ff4444;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-right: 5px;
+            font-family: var(--font-main);
+        }
+        .btn-outline-danger:hover {
+            background-color: rgba(255, 68, 68, 0.1);
+        }
+    </style>
+</body>
+</html>

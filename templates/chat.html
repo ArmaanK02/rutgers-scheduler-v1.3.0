@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - Scarlet Scheduler</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="app-body">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fas fa-calendar-alt"></i> Scarlet Scheduler</h3>
+        </div>
+        
+        <button id="new-chat-btn" class="btn btn-new-chat">
+            <i class="fas fa-plus"></i> New Chat
+        </button>
+        
+        <div class="nav-links">
+            <a href="{{ url_for('chat_interface') }}" class="nav-item active"><i class="fas fa-comments"></i> Chat</a>
+            <a href="{{ url_for('history_dashboard') }}" class="nav-item"><i class="fas fa-history"></i> Course History</a>
+            <a href="{{ url_for('progress_dashboard') }}" class="nav-item"><i class="fas fa-chart-line"></i> Major Progress</a>
+        </div>
+        
+        <div class="chat-history-list">
+            <div class="history-label">Recent Chats</div>
+            {% for chat in chats %}
+                <div class="history-item-wrapper {% if active_chat and chat.id == active_chat.id %}active{% endif %}">
+                    <a href="{{ url_for('chat_interface', id=chat.id) }}" class="history-item">
+                        <i class="fas fa-message"></i> {{ chat.title }}
+                    </a>
+                    <button class="delete-chat-btn" data-chat-id="{{ chat.id }}" title="Delete Chat">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <div class="user-profile">
+            <div class="user-info">
+                <div class="avatar">{{ user.username[0].upper() }}</div>
+                <span>{{ user.username }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="btn-logout" title="Logout"><i class="fas fa-sign-out-alt"></i></a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-chat-area">
+        {% if active_chat %}
+            <div class="chat-header">
+                <h2>{{ active_chat.title }}</h2>
+                <button class="btn btn-outline btn-sm" onclick="document.getElementById('import-modal').style.display='flex'">
+                    <i class="fas fa-file-import"></i> Quick Import
+                </button>
+            </div>
+            
+            <div class="chat-container" id="chat-container">
+                <!-- Messages will be rendered here -->
+                {% for msg in active_chat.messages %}
+                    <div class="message {{ 'message-user' if msg.role == 'user' else 'message-ai' }}">
+                        <div class="message-content">
+                            {{ msg.content }}
+                            
+                            {% if msg.meta_data %}
+                                <div class="schedule-preview">
+                                    <button class="btn btn-sm btn-outline view-schedule-btn" 
+                                            style="margin-top:10px" 
+                                            data-schedule-id="sched_{{ msg.id }}"
+                                            data-schedule-json="{{ msg.meta_data }}">
+                                        View Generated Schedules
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="message-time">{{ msg.timestamp.strftime('%H:%M') }}</div>
+                    </div>
+                {% endfor %}
+                
+                {% if not active_chat.messages %}
+                    <div class="empty-state">
+                        <i class="fas fa-robot fa-3x"></i>
+                        <h3>How can I help you today?</h3>
+                        <p>Try asking: "Schedule CS 111 and Calc 1"</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="input-area">
+                <form id="chat-form">
+                    <input type="hidden" id="current-chat-id" value="{{ active_chat.id }}">
+                    <div class="input-wrapper">
+                        <input type="text" id="user-input" placeholder="Type your request here..." autocomplete="off">
+                        <button type="submit" class="btn-send"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </form>
+            </div>
+        {% else %}
+            <div class="no-chat-selected">
+                <h2>Welcome to Scarlet Scheduler</h2>
+                <button onclick="createNewChat()" class="btn btn-primary">Start a New Chat</button>
+            </div>
+        {% endif %}
+    </main>
+
+    <!-- Import Modal -->
+    <div id="import-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('import-modal').style.display='none'">&times;</span>
+            <h3>Import Course History</h3>
+            <p>Paste your history from Degree Navigator (Ctrl+A, Ctrl+C).</p>
+            <textarea id="history-text" rows="5" placeholder="Course list..."></textarea>
+            <button onclick="uploadHistory()" class="btn btn-primary">Import</button>
+        </div>
+    </div>
+
+    <!-- Schedules Modal -->
+    <div id="schedule-modal" class="modal">
+        <div class="modal-content large">
+            <span class="close" onclick="document.getElementById('schedule-modal').style.display='none'">&times;</span>
+            <h3>Generated Schedules</h3>
+            <div id="schedules-list" class="schedules-grid"></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
