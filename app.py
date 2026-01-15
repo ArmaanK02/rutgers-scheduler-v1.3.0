@@ -9,8 +9,8 @@ import logging
 import requests
 import time
 import threading
-from datetime import datetime
-from typing import List, Dict, Optional, Tuple
+from datetime import datetime, timezone
+from typing import List, Dict, Optional, Tuple, Any
 
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
@@ -89,6 +89,7 @@ with app.app_context():
     db.create_all()
 
 # --- BACKGROUND DATA LOAD ---
+# Initialize repository early for AI agent
 repo = DataServiceFactory.get_repository()
 def load_history_background():
     logger.info("⏳ Starting background fetch of historical course titles...")
@@ -98,44 +99,18 @@ def load_history_background():
 threading.Thread(target=load_history_background, daemon=True).start()
 
 
-# --- CONSTANTS & HELPERS ---
-GREETINGS = ["hello", "hi", "hey", "greetings", "sup", "yo", "what's up", "howdy"]
-COURSE_CODE_PATTERN = re.compile(r'(\d{2,3})[:\s\-]?(\d{3})')
-COURSE_ALIASES = {
-    "cs": "198", "computer science": "198", "math": "640", "calc": "640",
-    "econ": "220", "physics": "750", "chem": "160", "bio": "119",
-    "psych": "830", "expos": "355", "stats": "960"
-}
-COMMON_COURSES = {
-    "intro to cs": "198:111", "data structures": "198:112",
-    "calc 1": "640:151", "calc 2": "640:152", "calc 3": "640:251",
-    "linear algebra": "640:250", "expos": "355:101"
-}
+# --- DEPRECATED: OLD REGEX-BASED CODE (No longer used - AI handles this now) ---
+# The system now uses AI-powered analysis via GeminiAgent
+# Keeping minimal definitions to avoid linter errors for deprecated code
+GREETINGS = []  # Deprecated - not used
+COURSE_ALIASES = {}  # Deprecated - not used
+COMMON_COURSES = {}  # Deprecated - not used
+MAJOR_FRESHMAN_COURSES = {}  # Deprecated - not used
 
-# Major-specific course recommendations
-MAJOR_FRESHMAN_COURSES = {
-    "computer science": ["198:111", "640:151", "355:101"],
-    "cs": ["198:111", "640:151", "355:101"],
-    "data science": ["198:142", "640:151", "960:211"],
-    "mathematics": ["640:151", "640:250", "355:101"],
-    "math": ["640:151", "640:250", "355:101"],
-    "economics": ["220:102", "640:135", "355:101"],
-    "econ": ["220:102", "640:135", "355:101"],
-    "business": ["010:272", "220:102", "355:101"],
-    "biology": ["119:115", "160:161", "355:101"],
-    "bio": ["119:115", "160:161", "355:101"],
-    "chemistry": ["160:161", "160:171", "640:151"],
-    "chem": ["160:161", "160:171", "640:151"],
-    "physics": ["750:203", "640:151", "355:101"],
-    "psychology": ["830:101", "355:101", "960:211"],
-    "psych": ["830:101", "355:101", "960:211"],
-    "engineering": ["440:127", "640:151", "750:203"],
-}
-
-# --- LOGIC CLASSES ---
-
+# --- DEPRECATED: OLD REGEX-BASED INTENT ANALYZER (No longer used) ---
 class IntentAnalyzer:
-    """Local intent analyzer for extracting course codes and constraints."""
+    """DEPRECATED: Old regex-based intent analyzer. 
+    No longer used - replaced by AI-powered GeminiAgent.analyze_intent()"""
     
     def __init__(self):
         self.day_mappings = {
@@ -147,9 +122,9 @@ class IntentAnalyzer:
         }
 
     def analyze(self, user_text: str) -> Dict:
-        lower = user_text.lower().strip()
-        result = {
-            "codes": self._extract_course_codes(user_text),
+        """DEPRECATED - Use GeminiAgent.analyze_intent() instead"""
+        return {
+            "codes": [],
             "subjects": [],
             "constraints": {"no_days": [], "preferred_times": [], "max_courses": None, "credits_target": None},
             "is_conversational": False,
@@ -160,92 +135,32 @@ class IntentAnalyzer:
             "explanation": "",
             "confidence": 0.0
         }
-        
-        # Detect schedule-related keywords
-        if any(w in lower for w in ["schedule", "plan", "classes", "courses", "need", "take", "register"]):
-            result["is_schedule_request"] = True
-        
-        # Detect greetings
-        if any(w in lower for w in GREETINGS) and len(lower.split()) < 4:
-            result["is_conversational"] = True
-        
-        # Detect major mentions
-        for major_key in MAJOR_FRESHMAN_COURSES.keys():
-            if major_key in lower:
-                result["detected_major"] = major_key
-                result["needs_recommendations"] = True
-                break
-        
-        # Detect freshman/sophomore/etc
-        if any(w in lower for w in ["freshman", "first year", "1st year", "new student"]):
-            result["is_freshman"] = True
-            result["needs_recommendations"] = True
-        
-        # Extract day constraints
-        if "no friday" in lower or "free friday" in lower or "fridays off" in lower:
-            result["constraints"]["no_days"].append("F")
-        if "no monday" in lower or "mondays off" in lower:
-            result["constraints"]["no_days"].append("M")
-        for day_name, day_code in self.day_mappings.items():
-            if f"no {day_name}" in lower:
-                if day_code not in result["constraints"]["no_days"]:
-                    result["constraints"]["no_days"].append(day_code)
-        
-        # Set confidence
-        if result["codes"]:
-            result["confidence"] = 0.9
-        elif result["detected_major"]:
-            result["confidence"] = 0.7
-        elif result["is_schedule_request"]:
-            result["confidence"] = 0.5
-        else:
-            result["confidence"] = 0.2
-            
-        return result
 
     def _extract_course_codes(self, text: str) -> List[str]:
-        codes = []
-        
-        # Match full course codes like 198:111 or 01:198:111
-        full_pattern = re.compile(r'(?:\d{2}:)?(\d{2,3}):(\d{3})')
-        for match in full_pattern.finditer(text):
-            codes.append(f"{match.group(1)}:{match.group(2)}")
-        
-        # Match common course names
-        lower_text = text.lower()
-        for name, code in COMMON_COURSES.items():
-            if name in lower_text:
-                if code not in codes:
-                    codes.append(code)
-        
-        # Match "CS 111" style
-        cs_pattern = re.compile(r'\b(cs|math|econ|phys|chem|bio|psych)\s*(\d{3})\b', re.IGNORECASE)
-        for match in cs_pattern.finditer(text):
-            subject = COURSE_ALIASES.get(match.group(1).lower(), match.group(1))
-            code = f"{subject}:{match.group(2)}"
-            if code not in codes:
-                codes.append(code)
-        
-        return list(set(codes))
+        """DEPRECATED - Use AI-powered analysis instead"""
+        return []
 
 
 class GeminiAgent:
-    """AI Agent that uses Gemini API for intelligent responses."""
+    """AI-First Agent that uses Gemini API as the primary intelligence layer."""
     
-    def __init__(self, api_keys):
+    def __init__(self, api_keys, course_repository=None):
         self.api_keys = api_keys if isinstance(api_keys, list) else ([api_keys] if api_keys else [])
-        self.local_analyzer = IntentAnalyzer()
+        self.course_repository = course_repository
         self.working_model = None
         self.last_request_time = 0
-        self.min_request_interval = 1.0  # seconds
+        self.min_request_interval = 0.5  # seconds
         
-        # Models to try in order of preference
+        # Models to try in order of preference (newer models first)
         self.models = [
-            "gemini-2.0-flash-lite",
+            "gemini-3-pro",
+            "gemini-3-flash",
+            "gemini-2.5-pro",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
             "gemini-2.0-flash",
-            "gemini-1.5-flash",
-            "gemini-1.5-flash-8b",
-            "gemini-pro",
+            "gemini-2.0-flash-lite",
+            "gemini-2.0-flash-exp",
         ]
         
         logger.info(f"GeminiAgent initialized with {len(self.api_keys)} API key(s)")
@@ -257,209 +172,431 @@ class GeminiAgent:
             time.sleep(self.min_request_interval - elapsed)
         self.last_request_time = time.time()
 
-    def _call_gemini(self, prompt: str, max_retries: int = 3) -> Optional[str]:
-        """Call Gemini API with exponential backoff."""
+    def _call_gemini(self, prompt: str, system_instruction: str = None, max_retries: int = 3) -> Optional[str]:
+        """Call Gemini API with exponential backoff and system instructions."""
         if not self.api_keys:
             logger.warning("No API keys configured")
             return None
         
         models_to_try = [self.working_model] if self.working_model else self.models
         
+        # Try different API endpoints for different model versions
+        api_endpoints = [
+            "v1beta",  # For newer models (2.0+, 3.0+)
+            "v1",      # Fallback for older models
+        ]
+        
         for api_key in self.api_keys:
             for model in models_to_try:
                 if not model:
                     continue
-                    
-                for attempt in range(max_retries):
-                    self._rate_limit_wait()
-                    
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-                    
-                    payload = {
-                        "contents": [{
-                            "parts": [{"text": prompt}]
-                        }],
-                        "generationConfig": {
-                            "temperature": 0.7,
-                            "maxOutputTokens": 1024,
-                        }
-                    }
-                    
-                    try:
-                        response = requests.post(
-                            url,
-                            headers={"Content-Type": "application/json"},
-                            json=payload,
-                            timeout=30
-                        )
-                        
-                        if response.status_code == 200:
-                            data = response.json()
-                            if 'candidates' in data and data['candidates']:
-                                text = data['candidates'][0].get('content', {}).get('parts', [{}])[0].get('text', '')
-                                self.working_model = model  # Cache working model
-                                logger.info(f"Gemini API success with model {model}")
-                                return text.strip()
-                        
-                        elif response.status_code == 429:
-                            # Rate limited - exponential backoff
-                            wait_time = (2 ** attempt) * 2
-                            logger.warning(f"Rate limited, waiting {wait_time}s...")
-                            time.sleep(wait_time)
-                            continue
-                        
-                        elif response.status_code == 404:
-                            logger.warning(f"Model {model} not found, trying next...")
-                            break  # Try next model
-                        
-                        elif response.status_code == 403:
-                            logger.error(f"API key forbidden (403) - API may not be enabled")
-                            break  # Try next key
-                        
-                        else:
-                            logger.warning(f"API error {response.status_code}: {response.text[:200]}")
-                            
-                    except requests.Timeout:
-                        logger.warning(f"Request timeout for model {model}")
-                    except Exception as e:
-                        logger.error(f"API exception: {e}")
                 
-                # If we got here without success, try next model
-                if model == self.working_model:
-                    self.working_model = None  # Reset cached model
+                # Try different API versions
+                success = False
+                for api_version in api_endpoints:
+                    if success:
+                        break
+                        
+                    for attempt in range(max_retries):
+                        self._rate_limit_wait()
+                        
+                        url = f"https://generativelanguage.googleapis.com/{api_version}/models/{model}:generateContent?key={api_key}"
+                        
+                        payload = {
+                            "contents": [{
+                                "parts": [{"text": prompt}]
+                            }],
+                            "generationConfig": {
+                                "temperature": 0.7,
+                                "maxOutputTokens": 2048,
+                                "topP": 0.95,
+                                "topK": 40,
+                            }
+                        }
+                        
+                        if system_instruction:
+                            payload["systemInstruction"] = {
+                                "parts": [{"text": system_instruction}]
+                            }
+                        
+                        try:
+                            response = requests.post(
+                                url,
+                                headers={"Content-Type": "application/json"},
+                                json=payload,
+                                timeout=30
+                            )
+                            
+                            if response.status_code == 200:
+                                data = response.json()
+                                if 'candidates' in data and data['candidates']:
+                                    text = data['candidates'][0].get('content', {}).get('parts', [{}])[0].get('text', '')
+                                    self.working_model = model  # Cache working model
+                                    logger.info(f"Gemini API success with model {model} using {api_version}")
+                                    success = True
+                                    return text.strip()
+                            
+                            elif response.status_code == 429:
+                                wait_time = (2 ** attempt) * 2
+                                logger.warning(f"Rate limited, waiting {wait_time}s...")
+                                time.sleep(wait_time)
+                                continue
+                            
+                            elif response.status_code == 404:
+                                # Try next API version if this one fails
+                                if api_version == api_endpoints[-1]:
+                                    logger.warning(f"Model {model} not found with any API version, trying next model...")
+                                break  # Break to try next API version
+                            
+                            elif response.status_code == 403:
+                                logger.error(f"API key forbidden (403) - API may not be enabled for model {model}")
+                                # Don't break here, try next model
+                                break
+                            
+                            else:
+                                error_text = response.text[:200] if hasattr(response, 'text') else str(response)
+                                logger.warning(f"API error {response.status_code} for {model} ({api_version}): {error_text}")
+                                # Try next API version
+                                break
+                                
+                        except requests.Timeout:
+                            logger.warning(f"Request timeout for model {model} ({api_version})")
+                            # Try next API version
+                            break
+                        except Exception as e:
+                            logger.error(f"API exception for {model} ({api_version}): {e}")
+                            # Try next API version
+                            break
+                
+                # If we found a working model, break out of model loop
+                if self.working_model == model:
+                    break
+            
+            # If we found a working model, break out of API key loop
+            if self.working_model:
+                break
+        
+        if not self.working_model:
+            logger.error("All models failed. Check API key and model availability.")
         
         return None
 
-    def analyze_intent(self, user_text: str, history_context: str = "", major_context: str = "") -> Dict:
-        """Analyze user intent using local analysis + AI enhancement."""
-        # First, use local analyzer for basic extraction
-        local_result = self.local_analyzer.analyze(user_text)
+    def _get_course_database_summary(self) -> str:
+        """Get a summary of available courses for AI context."""
+        if not self.course_repository:
+            return "Course database not available."
         
-        # If we found codes or clear intent locally, return that
-        if local_result["codes"] or local_result["detected_major"]:
-            return local_result
-        
-        # For ambiguous queries, try Gemini for enhancement
-        if local_result["is_schedule_request"] and not local_result["codes"]:
-            ai_prompt = f"""You are a Rutgers University course scheduling assistant. 
-Analyze this student request and extract:
-1. Any course codes mentioned (format: XXX:YYY like 198:111)
-2. The student's major if mentioned
-3. Any scheduling constraints (no Fridays, mornings only, etc.)
-
-Student request: "{user_text}"
-
-Respond in JSON format only:
-{{"courses": ["198:111"], "major": "computer science", "constraints": ["no_friday"], "needs_recommendation": true}}
-
-If unsure, set needs_recommendation to true."""
-
-            ai_response = self._call_gemini(ai_prompt)
-            if ai_response:
-                try:
-                    # Try to parse JSON from response
-                    json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
-                    if json_match:
-                        parsed = json.loads(json_match.group())
-                        if parsed.get("courses"):
-                            local_result["codes"] = parsed["courses"]
-                        if parsed.get("major"):
-                            local_result["detected_major"] = parsed["major"].lower()
-                            local_result["needs_recommendations"] = True
-                        if "no_friday" in parsed.get("constraints", []):
-                            local_result["constraints"]["no_days"].append("F")
-                except (json.JSONDecodeError, AttributeError) as e:
-                    logger.warning(f"Could not parse AI response: {e}")
-        
-        return local_result
-
-    def get_major_recommendations(self, major: str, is_freshman: bool = True) -> List[str]:
-        """Get course recommendations for a major."""
-        major_lower = major.lower()
-        
-        # Check our predefined recommendations
-        if major_lower in MAJOR_FRESHMAN_COURSES:
-            return MAJOR_FRESHMAN_COURSES[major_lower]
-        
-        # Check the catalog database
-        for major_name, major_data in catalog_db.get("majors", {}).items():
-            if major_lower in major_name.lower():
-                reqs = major_data.get("requirements", [])
-                # Return first 3-4 intro courses
-                return reqs[:4] if reqs else []
-        
-        # Default to common freshman courses
-        return ["355:101", "640:151"]  # Expos and Calc
-
-    def generate_response(self, user_text: str, intent: Dict, schedules_found: int = 0) -> str:
-        """Generate an intelligent response based on intent analysis."""
-        
-        # If we have codes and found schedules
-        if intent["codes"] and schedules_found > 0:
-            course_list = ", ".join(intent["codes"])
-            constraints_text = ""
-            if intent["constraints"]["no_days"]:
-                day_names = {"M": "Monday", "T": "Tuesday", "W": "Wednesday", "TH": "Thursday", "F": "Friday"}
-                excluded = [day_names.get(d, d) for d in intent["constraints"]["no_days"]]
-                constraints_text = f" with no classes on {', '.join(excluded)}"
+        try:
+            # Get a sample of courses for context (limit to avoid token limits)
+            all_courses = self.course_repository.data_cache[:100]  # First 100 courses
+            course_list = []
+            for entry in all_courses:
+                subject = entry.get('subject', '')
+                number = entry.get('courseNumber', '')
+                title = entry.get('title', '')
+                code = f"{subject}:{number}"
+                course_list.append(f"{code} - {title}")
             
-            return f"I found {schedules_found} possible schedules for {course_list}{constraints_text}. Click 'View Generated Schedules' to see your options!"
-        
-        # If we have codes but no schedules
-        if intent["codes"] and schedules_found == 0:
-            return f"I couldn't find any conflict-free schedules for {', '.join(intent['codes'])} with your constraints. Try removing some courses or relaxing your day preferences."
-        
-        # If we detected a major and need recommendations
-        if intent["needs_recommendations"] and intent["detected_major"]:
-            major = intent["detected_major"]
-            recommended = self.get_major_recommendations(major, intent.get("is_freshman", True))
-            
-            if recommended:
-                year_text = "freshman" if intent.get("is_freshman") else "student"
-                course_list = ", ".join(recommended)
-                
-                # Try AI for a more personalized response
-                ai_prompt = f"""A {year_text} {major} major at Rutgers is asking for course recommendations.
-Recommended courses: {course_list}
-Write a friendly 2-3 sentence response explaining why these courses are good starting points.
-Be specific to Rutgers and the {major} major."""
-                
-                ai_response = self._call_gemini(ai_prompt)
-                if ai_response:
-                    return f"{ai_response}\n\nRecommended courses: **{course_list}**\n\nWould you like me to create a schedule with these courses?"
-                else:
-                    return f"For a {year_text} {major} major, I recommend starting with: **{course_list}**. These courses build the foundation for your major. Would you like me to create a schedule with these?"
-            else:
-                return f"I found your major ({major}) but don't have specific recommendations. Please tell me which courses you'd like to schedule, like 'Schedule 198:111 and 640:151'."
-        
-        # If it's a scheduling request but we couldn't understand it
-        if intent["is_schedule_request"]:
-            # Try AI for clarification
-            ai_prompt = f"""A student asked: "{user_text}"
-This seems like a course scheduling request but I couldn't identify specific courses.
-Write a helpful response asking them to specify course codes (like 198:111) or course names (like 'Intro to CS').
-Keep it brief and friendly."""
-            
-            ai_response = self._call_gemini(ai_prompt)
-            if ai_response:
-                return ai_response
-            else:
-                return "I'd love to help with your schedule! Please tell me which courses you need. You can use course codes like '198:111' or names like 'Intro to CS', 'Calc 1', etc."
-        
-        # Conversational/greeting response
-        if intent["is_conversational"]:
-            return "Hi there! I'm your Rutgers course scheduling assistant. Tell me which courses you want to take, or let me know your major and I can suggest courses for you!"
-        
-        # Default fallback
-        return "I'm here to help you build your schedule! You can:\n• Give me course codes like '198:111' or 'Calc 1'\n• Tell me your major (e.g., 'I'm a CS major')\n• Add constraints like 'no Friday classes'"
+            return f"Available courses (sample): {', '.join(course_list[:50])}..." if course_list else "No courses in database."
+        except Exception as e:
+            logger.error(f"Error getting course database summary: {e}")
+            return "Course database error."
 
-    def chat_fallback(self, user_text: str) -> str:
-        """Fallback for conversational messages."""
-        return self.generate_response(user_text, {"is_conversational": True, "codes": [], "needs_recommendations": False, "detected_major": None, "constraints": {"no_days": []}})
+    def analyze_intent(self, user_text: str, conversation_history: List[Dict] = None, user_history: List[Dict] = None, major_context: str = "") -> Dict:
+        """Analyze user intent using AI with full context."""
+        conversation_history = conversation_history or []
+        user_history = user_history or []
+        
+        # Build conversation context
+        history_text = ""
+        if conversation_history:
+            history_text = "\n".join([
+                f"{'User' if msg.get('role') == 'user' else 'Assistant'}: {msg.get('content', '')[:200]}"
+                for msg in conversation_history[-5:]  # Last 5 messages
+            ])
+        
+        # Build user course history context
+        history_courses = []
+        if user_history:
+            history_courses = [h.get('short_code', '') for h in user_history[:20]]  # Last 20 courses
+        
+        # Get course database context
+        course_db_context = self._get_course_database_summary()
+        
+        system_instruction = """You are an intelligent course scheduling assistant for Rutgers University. 
+Your role is to understand student requests, extract course information, and provide helpful recommendations.
+Always respond in valid JSON format when extracting structured data."""
+
+        prompt = f"""Analyze this student's request and extract structured information.
+
+STUDENT REQUEST: "{user_text}"
+
+CONVERSATION HISTORY:
+{history_text if history_text else "No previous conversation"}
+
+STUDENT'S COURSE HISTORY (already taken):
+{', '.join(history_courses) if history_courses else "No courses taken yet"}
+
+MAJOR CONTEXT: {major_context if major_context else "Not specified"}
+
+AVAILABLE COURSES (sample from database):
+{course_db_context}
+
+Extract the following information and respond ONLY with valid JSON:
+{{
+    "courses": ["198:111", "640:151"],  // Array of course codes in format XXX:YYY (extract from natural language)
+    "course_names": ["intro to cs", "calculus 1"],  // Natural language course names mentioned
+    "major": "computer science",  // Student's major if mentioned
+    "constraints": {{
+        "no_days": ["F"],  // Days to avoid: M, T, W, TH, F
+        "preferred_times": ["morning", "afternoon"],  // Time preferences
+        "max_courses": 5,  // Maximum number of courses
+        "credits_target": 15  // Target credits
+    }},
+    "intent": "schedule" | "recommend" | "search" | "conversational" | "question" | "fill_schedule",
+    "needs_recommendation": true,  // True if student needs course recommendations
+    "fill_schedule": false,  // True if student wants to fill schedule to full credit load
+    "is_freshman": false,  // True if student mentions being a freshman
+    "explanation": "Brief explanation of what the student wants"
+}}
+
+IMPORTANT:
+- Extract course codes from natural language (e.g., "CS 111" -> "198:111", "calc 1" -> "640:151")
+- If course codes are ambiguous, include them in course_names and set needs_recommendation to true
+- Be intelligent about understanding scheduling constraints from natural language
+- If the request is conversational (greeting, question), set intent to "conversational" or "question"
+"""
+
+        ai_response = self._call_gemini(prompt, system_instruction)
+        
+        if ai_response:
+            try:
+                # Extract JSON from response
+                json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
+                if json_match:
+                    parsed = json.loads(json_match.group())
+                    
+                    # Map to our intent structure
+                    result = {
+                        "codes": parsed.get("courses", []),
+                        "course_names": parsed.get("course_names", []),
+                        "subjects": [],
+                        "constraints": {
+                            "no_days": parsed.get("constraints", {}).get("no_days", []),
+                            "preferred_times": parsed.get("constraints", {}).get("preferred_times", []),
+                            "max_courses": parsed.get("constraints", {}).get("max_courses"),
+                            "credits_target": parsed.get("constraints", {}).get("credits_target")
+                        },
+                        "is_conversational": parsed.get("intent") in ["conversational", "question"],
+                        "is_schedule_request": parsed.get("intent") in ["schedule", "fill_schedule"],
+                        "needs_recommendations": parsed.get("needs_recommendation", False) or parsed.get("fill_schedule", False),
+                        "fill_schedule": parsed.get("fill_schedule", False) or parsed.get("intent") == "fill_schedule",
+                        "detected_major": parsed.get("major"),
+                        "is_freshman": parsed.get("is_freshman", False),
+                        "explanation": parsed.get("explanation", ""),
+                        "confidence": 0.9 if parsed.get("courses") or parsed.get("course_names") else 0.6
+                    }
+                    
+                    logger.info(f"AI Intent Analysis: {result}")
+                    return result
+            except (json.JSONDecodeError, AttributeError) as e:
+                logger.warning(f"Could not parse AI response: {e}, raw response: {ai_response[:200]}")
+        
+        # Fallback to basic structure if AI fails
+        return {
+            "codes": [],
+            "course_names": [],
+            "subjects": [],
+            "constraints": {"no_days": [], "preferred_times": [], "max_courses": None, "credits_target": None},
+            "is_conversational": True,
+            "is_schedule_request": False,
+            "needs_recommendations": False,
+            "fill_schedule": False,
+            "detected_major": None,
+            "is_freshman": False,
+            "explanation": "",
+            "confidence": 0.3
+        }
+
+    def search_courses_ai(self, query: str, limit: int = 10) -> List[str]:
+        """Use AI to search for courses matching the query."""
+        if not self.course_repository:
+            return []
+        
+        course_db_context = self._get_course_database_summary()
+        
+        system_instruction = """You are a course search assistant. Find courses that match the student's query and return course codes in JSON format."""
+        
+        prompt = f"""Find courses matching this query: "{query}"
+
+AVAILABLE COURSES:
+{course_db_context}
+
+Respond with JSON array of course codes that match:
+["198:111", "640:151", ...]
+
+Only return course codes in format XXX:YYY. Return up to {limit} courses."""
+
+        ai_response = self._call_gemini(prompt, system_instruction)
+        
+        if ai_response:
+            try:
+                json_match = re.search(r'\[.*\]', ai_response, re.DOTALL)
+                if json_match:
+                    courses = json.loads(json_match.group())
+                    return courses[:limit]
+            except (json.JSONDecodeError, AttributeError) as e:
+                logger.warning(f"Could not parse course search response: {e}")
+        
+        # Fallback to repository search
+        if self.course_repository:
+            found_courses = self.course_repository.search_courses(query)
+            return [c.code for c in found_courses[:limit]]
+        
+        return []
+
+    def get_course_recommendations_ai(self, major: str = None, user_history: List[Dict] = None, constraints: Dict = None) -> List[str]:
+        """Use AI to recommend courses based on major, history, and constraints."""
+        user_history = user_history or []
+        constraints = constraints or {}
+        
+        history_courses = [h.get('short_code', '') for h in user_history]
+        course_db_context = self._get_course_database_summary()
+        
+        # Get major requirements if available
+        major_reqs = []
+        if major:
+            for major_name, major_data in catalog_db.get("majors", {}).items():
+                if major.lower() in major_name.lower():
+                    major_reqs = major_data.get("requirements", [])
+                    break
+        
+        system_instruction = """You are an academic advisor. Recommend courses based on the student's major, completed courses, and preferences."""
+        
+        fill_schedule = constraints.get('fill_schedule', False)
+        credits_target = constraints.get('credits_target', None)
+        
+        prompt = f"""Recommend courses for a student at Rutgers University.
+
+STUDENT'S MAJOR: {major if major else "Not specified"}
+
+MAJOR REQUIREMENTS: {', '.join(major_reqs[:20]) if major_reqs else "Not available"}
+
+COMPLETED COURSES (DO NOT RECOMMEND THESE - THEY ARE ALREADY TAKEN):
+{', '.join(history_courses) if history_courses else "None - student has not taken any courses yet"}
+
+CONSTRAINTS: {json.dumps(constraints)}
+
+AVAILABLE COURSES:
+{course_db_context}
+
+{"FILL SCHEDULE REQUEST: The student wants to fill their schedule to reach a normal credit load." if fill_schedule else ""}
+{"TARGET CREDITS: " + str(credits_target) if credits_target else ""}
+
+CRITICAL: Recommend {"5-7" if fill_schedule else "3-5"} courses that:
+1. Fit the student's major requirements OR are SAS core requirements (if no major specified)
+2. Are appropriate next steps given their completed courses (prerequisites should be satisfied)
+3. DO NOT include any courses from the COMPLETED COURSES list above
+4. Respect any constraints mentioned (e.g., no Friday classes)
+{"5. Help reach a full-time credit load (12-18 credits)" if fill_schedule else ""}
+
+{"For filling schedule, prioritize:" if fill_schedule else ""}
+{"- SAS core requirements the student hasn't completed (WCD, CCD, AH, NS, etc.)" if fill_schedule else ""}
+{"- General education courses" if fill_schedule else ""}
+{"- Courses that fit the student's major" if fill_schedule and major else ""}
+
+Respond with JSON array of course codes:
+["198:111", "640:151", ...]"""
+
+        ai_response = self._call_gemini(prompt, system_instruction)
+        
+        if ai_response:
+            try:
+                json_match = re.search(r'\[.*\]', ai_response, re.DOTALL)
+                if json_match:
+                    courses = json.loads(json_match.group())
+                    return courses
+            except (json.JSONDecodeError, AttributeError) as e:
+                logger.warning(f"Could not parse recommendations: {e}")
+        
+        # Fallback to catalog
+        if major_reqs:
+            return major_reqs[:5]
+        
+        return []
+
+    def generate_conversational_response(self, user_text: str, intent: Dict, conversation_history: List[Dict] = None, 
+                                        schedules_found: int = 0, courses_found: List[Course] = None, 
+                                        user_history: List[Dict] = None) -> str:
+        """Generate intelligent conversational response using AI."""
+        conversation_history = conversation_history or []
+        courses_found = courses_found or []
+        user_history = user_history or []
+        
+        # Build context
+        history_text = "\n".join([
+            f"{'User' if msg.get('role') == 'user' else 'Assistant'}: {msg.get('content', '')[:150]}"
+            for msg in conversation_history[-3:]
+        ])
+        
+        # Build course history context
+        history_courses = []
+        if user_history:
+            history_courses = [f"{h.get('short_code', '')} - {h.get('title', '')}" for h in user_history[:20]]
+        
+        course_info = ""
+        if courses_found:
+            course_info = "\n".join([f"- {c.code}: {c.title}" for c in courses_found[:5]])
+        
+        system_instruction = """You are a friendly, helpful course scheduling assistant for Rutgers University. 
+You have access to the student's course history. When recommending courses, ALWAYS check their completed courses first 
+and DO NOT recommend courses they have already taken. Reference their completed courses naturally in your response.
+Provide natural, conversational responses that are helpful and specific. Be concise but informative."""
+
+        prompt = f"""Generate a helpful response to the student's request.
+
+STUDENT REQUEST: "{user_text}"
+
+CONVERSATION CONTEXT:
+{history_text if history_text else "No previous conversation"}
+
+STUDENT'S COMPLETED COURSES (IMPORTANT - DO NOT RECOMMEND THESE):
+{chr(10).join(history_courses) if history_courses else "No courses completed yet"}
+
+INTENT ANALYSIS:
+- Courses requested: {', '.join(intent.get('codes', []))}
+- Major: {intent.get('detected_major', 'Not specified')}
+- Needs recommendations: {intent.get('needs_recommendations', False)}
+- Schedules found: {schedules_found}
+
+COURSES FOUND FOR SCHEDULING:
+{course_info if course_info else "No courses found yet"}
+
+IMPORTANT INSTRUCTIONS:
+1. If the student asks about their course history or what they've taken, reference the COMPLETED COURSES list above
+2. When recommending courses, check the COMPLETED COURSES list and DO NOT recommend anything already taken
+3. If recommending next steps, mention what they've already completed and suggest logical next courses
+4. Be specific and reference actual course codes when possible
+
+Generate a natural, helpful response (2-4 sentences). Be specific about courses and next steps.
+If schedules were found, mention it. Reference their completed courses when relevant."""
+
+        ai_response = self._call_gemini(prompt, system_instruction)
+        
+        if ai_response:
+            return ai_response.strip()
+        
+        # Fallback response
+        if schedules_found > 0:
+            return f"I found {schedules_found} possible schedule(s) for you! Check the schedules below."
+        elif intent.get('codes'):
+            return f"I'm working on finding schedules for {', '.join(intent['codes'])}. Let me search the database..."
+        else:
+            return "I'm here to help you build your schedule! Tell me which courses you'd like to take, or your major for recommendations."
 
 
-# Initialize AI agent
-ai_agent = GeminiAgent(Config.GEMINI_API_KEYS)
+# Initialize AI agent with course repository (using repo from above)
+ai_agent = GeminiAgent(Config.GEMINI_API_KEYS, course_repository=repo)
 
 
 # --- AUTH ROUTES ---
@@ -592,71 +729,131 @@ def send_message():
         db.session.add(chat)
         db.session.commit()
     else:
-        chat.updated_at = datetime.utcnow()
+        chat.updated_at = datetime.now(timezone.utc)
         if chat.title == "New Chat":
             chat.title = text[:30] + "..."
             
     user_msg = Message(chat_id=chat.id, role='user', content=text)
     db.session.add(user_msg)
+    db.session.flush()  # Flush to get timestamp
     
-    # Analyze intent using AI agent
-    ai_result = ai_agent.analyze_intent(text)
-    logger.info(f"Intent analysis: codes={ai_result['codes']}, major={ai_result.get('detected_major')}, needs_recs={ai_result.get('needs_recommendations')}")
+    # Get conversation history
+    previous_messages = Message.query.filter_by(chat_id=chat.id).order_by(Message.timestamp.asc()).all()
+    conversation_history = [
+        {"role": msg.role, "content": msg.content}
+        for msg in previous_messages[-10:]  # Last 10 messages for context
+    ]
+    
+    # Get user's course history
+    user_history = current_user.get_history()
+    
+    # Analyze intent using AI with full context
+    ai_result = ai_agent.analyze_intent(
+        text, 
+        conversation_history=conversation_history,
+        user_history=user_history,
+        major_context=""  # Could be extracted from user profile in future
+    )
+    logger.info(f"AI Intent analysis: {ai_result}")
     
     response_text = ""
     schedules_data = []
+    courses_obj = []
     
-    # Handle different scenarios
-    if ai_result['is_conversational'] and not ai_result['codes'] and not ai_result.get('needs_recommendations'):
-        response_text = ai_agent.chat_fallback(text)
+    # Handle course search if course names were mentioned but codes weren't found
+    if ai_result.get('course_names') and not ai_result.get('codes'):
+        # Use AI to search for courses
+        for course_name in ai_result['course_names'][:3]:  # Limit to 3 searches
+            found_codes = ai_agent.search_courses_ai(course_name, limit=5)
+            ai_result['codes'].extend(found_codes)
+        ai_result['codes'] = list(set(ai_result['codes']))  # Remove duplicates
     
-    elif ai_result.get('needs_recommendations') and ai_result.get('detected_major'):
-        # Get recommended courses for the major
-        recommended_codes = ai_agent.get_major_recommendations(
-            ai_result['detected_major'], 
-            ai_result.get('is_freshman', True)
-        )
-        
-        if recommended_codes:
-            # Try to schedule the recommended courses
-            current_repo = DataServiceFactory.get_repository()
-            courses_obj = current_repo.get_courses(recommended_codes)
-            
-            if courses_obj:
-                scheduler = DeepSeekSchedulerStrategy()
-                constraints = ScheduleConstraints(no_days=ai_result['constraints']['no_days'])
-                schedules = scheduler.generate_schedules(courses_obj, constraints)
-                
-                if schedules:
-                    schedules_data = _format_schedules_helper(schedules, courses_obj)
-                    response_text = ai_agent.generate_response(text, ai_result, len(schedules))
-                else:
-                    response_text = ai_agent.generate_response(text, ai_result, 0)
-            else:
-                response_text = ai_agent.generate_response(text, ai_result, 0)
-        else:
-            response_text = ai_agent.generate_response(text, ai_result, 0)
+    # Check if user wants to fill schedule to normal credit load
+    fill_schedule = ai_result.get('fill_schedule', False) or any(phrase in text.lower() for phrase in [
+        "fill", "complete", "full schedule", "normal credit", "full credit load", 
+        "reach", "get to", "make it", "fill the rest"
+    ])
+    credits_target = ai_result.get('constraints', {}).get('credits_target', 15 if fill_schedule else None)
     
-    elif ai_result['codes']:
-        # Schedule specific courses
+    # Handle recommendations
+    if ai_result.get('needs_recommendations') or fill_schedule:
+        if ai_result.get('detected_major') or fill_schedule:
+            # Get AI-powered recommendations
+            recommended_codes = ai_agent.get_course_recommendations_ai(
+                major=ai_result.get('detected_major'),
+                user_history=user_history,
+                constraints={
+                    **ai_result.get('constraints', {}),
+                    'fill_schedule': fill_schedule,
+                    'credits_target': credits_target
+                }
+            )
+            if recommended_codes:
+                ai_result['codes'].extend(recommended_codes)
+                ai_result['codes'] = list(set(ai_result['codes']))
+    
+    # Get courses from database
+    if ai_result.get('codes'):
         current_repo = DataServiceFactory.get_repository()
         courses_obj = current_repo.get_courses(ai_result['codes'])
         
-        if not courses_obj:
-            response_text = f"I couldn't find these courses in the database: {', '.join(ai_result['codes'])}. Please check the course codes and try again."
-        else:
-            scheduler = DeepSeekSchedulerStrategy()
-            constraints = ScheduleConstraints(no_days=ai_result['constraints']['no_days'])
-            schedules = scheduler.generate_schedules(courses_obj, constraints)
-            
-            if schedules:
-                schedules_data = _format_schedules_helper(schedules, courses_obj)
-                response_text = ai_agent.generate_response(text, ai_result, len(schedules))
-            else:
-                response_text = ai_agent.generate_response(text, ai_result, 0)
-    else:
-        # Couldn't understand the request
-        response_text = ai_agent.generate_response(text, ai_result, 0)
+        # If courses not found, try AI search for alternatives
+        if not courses_obj and ai_result.get('course_names'):
+            logger.info("Courses not found, trying AI search for alternatives...")
+            for course_name in ai_result['course_names'][:2]:
+                alternative_codes = ai_agent.search_courses_ai(course_name, limit=3)
+                if alternative_codes:
+                    alt_courses = current_repo.get_courses(alternative_codes)
+                    if alt_courses:
+                        courses_obj.extend(alt_courses)
+                        break
+        
+        # If user wants to fill schedule and we have few courses, add more
+        if fill_schedule and courses_obj:
+            current_credits = sum(getattr(c, 'credits', 3) for c in courses_obj)
+            if credits_target and current_credits < credits_target:
+                needed_credits = credits_target - current_credits
+                logger.info(f"Filling schedule: have {current_credits} credits, need {needed_credits} more")
+                
+                # Get additional course recommendations
+                additional_codes = ai_agent.get_course_recommendations_ai(
+                    major=ai_result.get('detected_major'),
+                    user_history=user_history,
+                    constraints={
+                        **ai_result.get('constraints', {}),
+                        'credits_target': needed_credits,
+                        'fill_schedule': True
+                    }
+                )
+                
+                if additional_codes:
+                    # Filter out already selected courses
+                    existing_codes = {c.code for c in courses_obj}
+                    new_codes = [code for code in additional_codes if code not in existing_codes]
+                    
+                    if new_codes:
+                        additional_courses = current_repo.get_courses(new_codes[:5])  # Limit to 5 additional
+                        courses_obj.extend(additional_courses)
+                        logger.info(f"Added {len(additional_courses)} additional courses to reach credit target")
+    
+    # Generate schedules if we have courses
+    if courses_obj:
+        scheduler = DeepSeekSchedulerStrategy()
+        constraints = ScheduleConstraints(no_days=ai_result['constraints']['no_days'])
+        schedules = scheduler.generate_schedules(courses_obj, constraints)
+        
+        if schedules:
+            schedules_data = _format_schedules_helper(schedules, courses_obj)
+    
+    # Generate AI-powered conversational response
+    response_text = ai_agent.generate_conversational_response(
+        user_text=text,
+        intent=ai_result,
+        conversation_history=conversation_history,
+        schedules_found=len(schedules_data),
+        courses_found=courses_obj,
+        user_history=user_history  # Pass course history to response generator
+    )
 
     ai_msg = Message(
         chat_id=chat.id, 
@@ -677,19 +874,134 @@ def send_message():
         }
     })
 
+def _calculate_schedule_benefits(schedule_data: List[Dict]) -> Dict[str, Any]:
+    """Calculate benefits/characteristics of a schedule."""
+    benefits = []
+    
+    # Collect all time slots
+    all_times = []
+    campuses = set()
+    days_with_classes = set()
+    morning_classes = 0
+    afternoon_classes = 0
+    evening_classes = 0
+    total_credits = 0
+    
+    for course_info in schedule_data:
+        total_credits += course_info.get('credits', 3)
+        campuses.add(course_info.get('campus', 'Unknown'))
+        
+        for time_info in course_info.get('times', []):
+            day = time_info.get('day', '')
+            if day:
+                days_with_classes.add(day)
+            
+            start_time = time_info.get('start_minutes', 0)
+            if 480 <= start_time < 720:  # 8 AM - 12 PM
+                morning_classes += 1
+            elif 720 <= start_time < 1020:  # 12 PM - 5 PM
+                afternoon_classes += 1
+            elif start_time >= 1020:  # 5 PM+
+                evening_classes += 1
+    
+    # Calculate benefits
+    days_without_classes = 5 - len(days_with_classes)
+    if days_without_classes > 0:
+        day_names = {'M': 'Monday', 'T': 'Tuesday', 'W': 'Wednesday', 'TH': 'Thursday', 'F': 'Friday'}
+        free_days = [day_names.get(d, d) for d in ['M', 'T', 'W', 'TH', 'F'] if d not in days_with_classes]
+        if free_days:
+            benefits.append(f"No classes on {', '.join(free_days)}")
+    
+    if len(campuses) <= 2 and 'Unknown' not in campuses:
+        campus_list = list(campuses)
+        if len(campus_list) == 1:
+            benefits.append(f"All classes on {campus_list[0]} campus")
+        else:
+            benefits.append(f"Classes on only {len(campus_list)} campuses ({', '.join(campus_list)})")
+    
+    if morning_classes == 0:
+        benefits.append("No morning classes")
+    if evening_classes == 0:
+        benefits.append("No evening classes")
+    
+    # Check if spread out (classes on 4+ days)
+    if len(days_with_classes) >= 4:
+        benefits.append("Well-distributed schedule")
+    elif len(days_with_classes) <= 2:
+        benefits.append("Compact schedule (fewer days)")
+    
+    return {
+        'benefits': benefits,
+        'total_credits': total_credits,
+        'campuses': list(campuses),
+        'days_with_classes': len(days_with_classes),
+        'no_morning': morning_classes == 0,
+        'no_evening': evening_classes == 0
+    }
+
 def _format_schedules_helper(schedules, courses_obj):
+    """Format schedules with readable time information and benefits."""
     results = []
-    for schedule in schedules[:10]:
+    for schedule in schedules[:50]:  # Increased limit
         schedule_data = []
         for section in schedule:
             course = next((c for c in courses_obj for s in c.sections if s.index == section.index), None)
+            if not course:
+                continue
+                
+            # Format time slots with detailed information
+            formatted_times = []
+            for time_slot in section.time_slots:
+                # Convert minutes to readable time
+                start_hour = time_slot.start_time // 60
+                start_min = time_slot.start_time % 60
+                end_hour = time_slot.end_time // 60
+                end_min = time_slot.end_time % 60
+                
+                # Format as 12-hour time
+                start_period = "AM" if start_hour < 12 else "PM"
+                end_period = "AM" if end_hour < 12 else "PM"
+                if start_hour == 0:
+                    start_hour = 12
+                elif start_hour > 12:
+                    start_hour -= 12
+                if end_hour == 0:
+                    end_hour = 12
+                elif end_hour > 12:
+                    end_hour -= 12
+                
+                time_info = {
+                    'day': time_slot.day,
+                    'time_str': f"{start_hour}:{start_min:02d}{start_period}-{end_hour}:{end_min:02d}{end_period}",
+                    'start_minutes': time_slot.start_time,
+                    'end_minutes': time_slot.end_time,
+                    'campus': time_slot.campus if time_slot.campus != "UNKNOWN" else "Unknown",
+                    'room': getattr(time_slot, 'room', '')
+                }
+                formatted_times.append(time_info)
+            
+            # Get primary campus (most common)
+            campuses = [t['campus'] for t in formatted_times if t['campus'] != 'Unknown']
+            primary_campus = max(set(campuses), key=campuses.count) if campuses else "Unknown"
+            
             schedule_data.append({
                 'course': course.code if course else "Unknown",
                 'title': course.title if course else "",
                 'index': section.index,
-                'times': [str(t) for t in section.time_slots]
+                'section_number': section.section_number if hasattr(section, 'section_number') else "Unknown",
+                'times': formatted_times,
+                'instructors': section.instructors if hasattr(section, 'instructors') else [],
+                'campus': primary_campus,
+                'credits': getattr(course, 'credits', 3.0)
             })
-        results.append(schedule_data)
+        
+        # Calculate benefits for this schedule
+        benefits = _calculate_schedule_benefits(schedule_data)
+        
+        results.append({
+            'courses': schedule_data,
+            'benefits': benefits
+        })
     return results
 
 @app.route('/api/parse_history', methods=['POST'])
@@ -761,28 +1073,140 @@ def add_manual_course():
 def check_progress():
     major = request.json.get('major')
     major_data = catalog_db.get('majors', {}).get(major, {})
-    requirements = major_data.get('requirements', [])
     
     history = current_user.get_history()
     taken_codes = {h['short_code'] for h in history}
     
-    completed = []
-    remaining = []
+    # Check if we have structured requirements
+    structured_reqs = major_data.get('structured_requirements')
     
-    for req in requirements:
-        if req in taken_codes:
-            completed.append(req)
-        else:
-            remaining.append(req)
-            
-    progress_percent = int((len(completed) / len(requirements) * 100)) if requirements else 0
-    
-    return jsonify({
-        'progress': progress_percent,
-        'completed': completed,
-        'remaining': remaining,
-        'total_reqs': len(requirements)
-    })
+    if structured_reqs:
+        # Use structured requirements for detailed tracking
+        result = {
+            'progress': 0,
+            'completed': [],
+            'remaining': [],
+            'total_reqs': 0,
+            'core_requirements': {
+                'completed': [],
+                'remaining': [],
+                'total': 0
+            },
+            'electives': {
+                'lower_level': {'completed': [], 'remaining': [], 'required': 0, 'total': 0},
+                'upper_level': {'completed': [], 'remaining': [], 'required': 0, 'total': 0},
+                'general': {'completed': [], 'remaining': [], 'required': 0, 'total': 0}
+            },
+            'total_credits': structured_reqs.get('total_credits'),
+            'notes': structured_reqs.get('notes', '')
+        }
+        
+        # Process core requirements
+        if structured_reqs.get('core_requirements'):
+            for course in structured_reqs['core_requirements']:
+                code = course.get('code', '')
+                short_code = code.split(':')[-2] + ':' + code.split(':')[-1] if ':' in code else code
+                result['total_reqs'] += 1
+                result['core_requirements']['total'] += 1
+                
+                if short_code in taken_codes:
+                    result['completed'].append(short_code)
+                    result['core_requirements']['completed'].append({
+                        'code': short_code,
+                        'name': course.get('name', ''),
+                        'prerequisites': course.get('prerequisites', [])
+                    })
+                else:
+                    result['remaining'].append(short_code)
+                    result['core_requirements']['remaining'].append({
+                        'code': short_code,
+                        'name': course.get('name', ''),
+                        'prerequisites': course.get('prerequisites', [])
+                    })
+        
+        # Process electives
+        if structured_reqs.get('electives'):
+            for level in ['lower_level', 'upper_level', 'general']:
+                elective_data = structured_reqs['electives'].get(level, {})
+                required_count = elective_data.get('required_count', 0)
+                courses = elective_data.get('courses', [])
+                
+                result['electives'][level]['required'] = required_count
+                result['electives'][level]['total'] = len(courses)
+                
+                completed_count = 0
+                for course in courses:
+                    code = course.get('code', '')
+                    short_code = code.split(':')[-2] + ':' + code.split(':')[-1] if ':' in code else code
+                    
+                    if short_code in taken_codes:
+                        completed_count += 1
+                        result['electives'][level]['completed'].append({
+                            'code': short_code,
+                            'name': course.get('name', ''),
+                            'prerequisites': course.get('prerequisites', [])
+                        })
+                    else:
+                        result['electives'][level]['remaining'].append({
+                            'code': short_code,
+                            'name': course.get('name', ''),
+                            'prerequisites': course.get('prerequisites', [])
+                        })
+                
+                # Calculate progress for this elective category
+                if required_count > 0:
+                    result['electives'][level]['progress'] = min(100, int((completed_count / required_count) * 100))
+                else:
+                    result['electives'][level]['progress'] = 0
+        
+        # Calculate overall progress
+        if result['total_reqs'] > 0:
+            result['progress'] = int((len(result['completed']) / result['total_reqs']) * 100)
+        
+        # Add elective progress to overall
+        elective_progress = 0
+        elective_total = 0
+        for level in ['lower_level', 'upper_level', 'general']:
+            req_count = result['electives'][level]['required']
+            if req_count > 0:
+                completed = len(result['electives'][level]['completed'])
+                elective_progress += completed
+                elective_total += req_count
+        
+        if elective_total > 0:
+            # Weighted progress: core + electives
+            core_weight = len(result['completed']) if result['total_reqs'] > 0 else 0
+            total_weight = result['total_reqs'] + elective_total
+            if total_weight > 0:
+                result['progress'] = int(((core_weight + elective_progress) / total_weight) * 100)
+        
+        return jsonify(result)
+    else:
+        # Fallback to simple requirements list
+        requirements = major_data.get('requirements', [])
+        completed = []
+        remaining = []
+        
+        for req in requirements:
+            if req in taken_codes:
+                completed.append(req)
+            else:
+                remaining.append(req)
+                
+        progress_percent = int((len(completed) / len(requirements) * 100)) if requirements else 0
+        
+        return jsonify({
+            'progress': progress_percent,
+            'completed': completed,
+            'remaining': remaining,
+            'total_reqs': len(requirements),
+            'core_requirements': {'completed': [], 'remaining': [], 'total': 0},
+            'electives': {
+                'lower_level': {'completed': [], 'remaining': [], 'required': 0, 'total': 0},
+                'upper_level': {'completed': [], 'remaining': [], 'required': 0, 'total': 0},
+                'general': {'completed': [], 'remaining': [], 'required': 0, 'total': 0}
+            }
+        })
 
 @app.route('/api/what_if', methods=['POST'])
 @login_required

@@ -5,12 +5,13 @@ from typing import List, Dict, Optional, Set
 
 class TimeSlot:
     """Represents a specific meeting time."""
-    def __init__(self, day: str, start_time: int, end_time: int, raw_time_str: str = "", campus: str = ""):
+    def __init__(self, day: str, start_time: int, end_time: int, raw_time_str: str = "", campus: str = "", room: str = ""):
         self.day = day
         self.start_time = start_time # Minutes from midnight
         self.end_time = end_time     # Minutes from midnight
         self.raw_time_str = raw_time_str
         self.campus = campus
+        self.room = room  # Building and room number
 
     def overlaps(self, other: 'TimeSlot') -> bool:
         if self.day != other.day:
@@ -56,12 +57,18 @@ class Section:
             if end_minutes < start_minutes:
                 end_minutes += 12 * 60  # Add 12 hours
 
+            # Extract room/building information
+            room = mt.get('roomNumber', mt.get('room', ''))
+            building = mt.get('buildingCode', mt.get('building', ''))
+            location = f"{building} {room}".strip() if building or room else ""
+            
             slots.append(TimeSlot(
                 day=mt['meetingDay'],
                 start_time=start_minutes,
                 end_time=end_minutes, 
                 raw_time_str=f"{start_str}-{end_str}",
-                campus=campus
+                campus=campus,
+                room=location
             ))
         return slots
 
@@ -101,11 +108,12 @@ class Section:
 
 class Course:
     """Represents a Course with multiple sections and prerequisites."""
-    def __init__(self, title: str, code: str, sections: List[Section], prereqs: Set[str] = None):
+    def __init__(self, title: str, code: str, sections: List[Section], prereqs: Set[str] = None, credits: float = 3.0):
         self.title = title
         self.code = code
         self.sections = sections
         self.prereqs = prereqs or set() # Set of codes like "01:640:111"
+        self.credits = credits
 
     def __repr__(self):
         return f"{self.title} ({self.code})"

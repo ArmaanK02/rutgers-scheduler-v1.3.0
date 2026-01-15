@@ -155,32 +155,22 @@ class DataRepository:
     def _map_to_domain(self, entry: Dict) -> Course:
         sections = []
         for sect in entry.get('sections', []):
-            times = []
-            for meeting in sect.get('meetingTimes', []):
-                if meeting.get('startTime') and meeting.get('endTime'):
-                    # Convert HHMM to minutes
-                    start = self._time_to_minutes(meeting['startTime'])
-                    end = self._time_to_minutes(meeting['endTime'])
-                    day = meeting.get('meetingDay')
-                    if day and start and end:
-                        times.append(TimeSlot(day=day, start_time=start, end_time=end, campus=meeting.get('campusName', 'NB')))
-            
-            # Helper to get instructor names
-            instructors = [i.get('name') for i in sect.get('instructors', [])]
-            
-            sections.append(Section(
-                index=sect['index'],
-                course_code=f"{entry['subject']}:{entry['courseNumber']}",
-                instructors=instructors,
-                time_slots=times,
-                open_status=sect.get('openStatus', True)
-            ))
+            # Section constructor expects a Dict with specific keys
+            section_data = {
+                'number': sect.get('number', sect.get('sectionNumber', 'UNKNOWN')),
+                'index': sect.get('index', '00000'),
+                'instructors': sect.get('instructors', []),
+                'meetingTimes': sect.get('meetingTimes', []),
+                'openStatus': sect.get('openStatus', True)
+            }
+            sections.append(Section(section_data))
             
         return Course(
-            code=f"{entry['subject']}:{entry['courseNumber']}",
-            title=entry['title'],
-            credits=float(entry.get('credits', 3.0)),
-            sections=sections
+            title=entry.get('title', 'Unknown Title'),
+            code=f"{entry.get('subject', '')}:{entry.get('courseNumber', '')}",
+            sections=sections,
+            prereqs=set(),  # Prerequisites would need to be loaded from another source
+            credits=float(entry.get('credits', entry.get('creditHours', 3.0)))
         )
 
     def _time_to_minutes(self, hhmm: str) -> int:

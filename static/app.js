@@ -37,12 +37,18 @@ document.addEventListener('DOMContentLoaded', () => {
             userInput.value = '';
             userInput.disabled = true;
 
+            // Show thinking animation
+            const thinkingId = showThinkingAnimation();
+
             try {
                 const response = await fetch('/api/send_message', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ chat_id: chatId, text: text })
                 });
+                
+                // Remove thinking animation
+                removeThinkingAnimation(thinkingId);
                 
                 const data = await response.json();
                 appendMessage('ai', data.ai_message.text, data.ai_message.schedules);
@@ -53,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (err) {
                 console.error(err);
+                removeThinkingAnimation(thinkingId);
                 appendMessage('ai', "Sorry, I encountered an error. Please try again.");
             } finally {
                 userInput.disabled = false;
@@ -158,36 +165,132 @@ async function addTracker() {
         card.className = 'data-card tracker-card';
         card.id = trackerId;
         
-        const completedHtml = data.completed.length ? 
-            data.completed.map(c => `<li><i class="fas fa-check-circle text-success"></i> ${c}</li>`).join('') :
-            '<li style="color:#666">No requirements met yet</li>';
-            
-        const remainingHtml = data.remaining.length ?
-            data.remaining.slice(0, 5).map(c => `<li><i class="fas fa-circle text-secondary"></i> ${c}</li>`).join('') + 
-            (data.remaining.length > 5 ? `<li>...and ${data.remaining.length - 5} more</li>` : '') :
-            '<li><i class="fas fa-star text-success"></i> All done!</li>';
-
-        card.innerHTML = `
-            <button class="tracker-remove" onclick="removeTracker('${trackerId}')"><i class="fas fa-times"></i></button>
-            <h3><i class="fas fa-graduation-cap"></i> ${major}</h3>
-            
-            <div class="progress-bar-container">
-                <div class="progress-bar-fill" style="width: ${data.progress}%"></div>
-            </div>
-            <p style="text-align: right; margin-top: 10px; font-weight: bold;">${data.progress}% Completed</p>
-            
-            <div class="progress-grid">
-                <div class="bg-darker">
-                    <h4>Completed</h4>
-                    <ul class="req-list" style="max-height: 150px; overflow-y: auto;">${completedHtml}</ul>
-                </div>
-                <div class="bg-darker">
-                    <h4>Missing</h4>
-                    <ul class="req-list" style="max-height: 150px; overflow-y: auto;">${remainingHtml}</ul>
-                </div>
-            </div>
-        `;
+        // Check if we have structured requirements
+        const hasStructured = data.core_requirements && data.electives;
         
+        let contentHtml = '';
+        
+        if (hasStructured) {
+            // Display structured requirements
+            const coreCompleted = data.core_requirements.completed || [];
+            const coreRemaining = data.core_requirements.remaining || [];
+            const coreTotal = data.core_requirements.total || 0;
+            
+            const coreHtml = `
+                <div class="requirement-section">
+                    <h4><i class="fas fa-book"></i> Core Requirements (${coreCompleted.length}/${coreTotal})</h4>
+                    <div class="req-grid">
+                        <div>
+                            <h5 style="color: #4caf50; margin-bottom: 10px;">Completed</h5>
+                            <ul class="req-list">
+                                ${coreCompleted.length ? coreCompleted.map(c => 
+                                    `<li><i class="fas fa-check-circle text-success"></i> ${c.code}${c.name ? ` - ${c.name}` : ''}</li>`
+                                ).join('') : '<li style="color:#666">None yet</li>'}
+                            </ul>
+                        </div>
+                        <div>
+                            <h5 style="color: #ff9800; margin-bottom: 10px;">Remaining</h5>
+                            <ul class="req-list">
+                                ${coreRemaining.length ? coreRemaining.slice(0, 10).map(c => 
+                                    `<li><i class="fas fa-circle text-secondary"></i> ${c.code}${c.name ? ` - ${c.name}` : ''}</li>`
+                                ).join('') + (coreRemaining.length > 10 ? `<li>...and ${coreRemaining.length - 10} more</li>` : '') : '<li><i class="fas fa-star text-success"></i> All done!</li>'}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Electives section
+            let electivesHtml = '<div class="requirement-section" style="margin-top: 20px;"><h4><i class="fas fa-list"></i> Electives</h4>';
+            
+            ['lower_level', 'upper_level', 'general'].forEach(level => {
+                const levelData = data.electives[level] || {};
+                const required = levelData.required || 0;
+                const completed = levelData.completed || [];
+                const remaining = levelData.remaining || [];
+                const progress = levelData.progress || 0;
+                
+                if (required > 0 || completed.length > 0 || remaining.length > 0) {
+                    const levelName = level.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    electivesHtml += `
+                        <div class="elective-category" style="margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                            <h5>${levelName} Electives (${completed.length}/${required} required)</h5>
+                            <div class="progress-bar-container" style="margin: 10px 0;">
+                                <div class="progress-bar-fill" style="width: ${progress}%"></div>
+                            </div>
+                            <div class="req-grid">
+                                <div>
+                                    <h6 style="color: #4caf50; font-size: 0.9rem;">Completed</h6>
+                                    <ul class="req-list" style="font-size: 0.85rem;">
+                                        ${completed.length ? completed.map(c => 
+                                            `<li><i class="fas fa-check-circle text-success"></i> ${c.code}${c.name ? ` - ${c.name}` : ''}</li>`
+                                        ).join('') : '<li style="color:#666">None yet</li>'}
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h6 style="color: #ff9800; font-size: 0.9rem;">Available</h6>
+                                    <ul class="req-list" style="font-size: 0.85rem; max-height: 100px; overflow-y: auto;">
+                                        ${remaining.length ? remaining.slice(0, 8).map(c => 
+                                            `<li><i class="fas fa-circle text-secondary"></i> ${c.code}${c.name ? ` - ${c.name}` : ''}</li>`
+                                        ).join('') + (remaining.length > 8 ? `<li>...and ${remaining.length - 8} more</li>` : '') : '<li>No options available</li>'}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            electivesHtml += '</div>';
+            
+            contentHtml = `
+                <button class="tracker-remove" onclick="removeTracker('${trackerId}')"><i class="fas fa-times"></i></button>
+                <h3><i class="fas fa-graduation-cap"></i> ${major}</h3>
+                
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: ${data.progress}%"></div>
+                </div>
+                <p style="text-align: right; margin-top: 10px; font-weight: bold;">${data.progress}% Completed</p>
+                
+                ${coreHtml}
+                ${electivesHtml}
+                
+                ${data.notes ? `<div style="margin-top: 15px; padding: 10px; background: rgba(204,0,51,0.1); border-left: 3px solid var(--accent-red); border-radius: 4px; font-size: 0.9rem;"><strong>Note:</strong> ${data.notes}</div>` : ''}
+            `;
+        } else {
+            // Fallback to simple display
+            const completedHtml = data.completed.length ? 
+                data.completed.map(c => `<li><i class="fas fa-check-circle text-success"></i> ${c}</li>`).join('') :
+                '<li style="color:#666">No requirements met yet</li>';
+                
+            const remainingHtml = data.remaining.length ?
+                data.remaining.slice(0, 5).map(c => `<li><i class="fas fa-circle text-secondary"></i> ${c}</li>`).join('') + 
+                (data.remaining.length > 5 ? `<li>...and ${data.remaining.length - 5} more</li>` : '') :
+                '<li><i class="fas fa-star text-success"></i> All done!</li>';
+
+            contentHtml = `
+                <button class="tracker-remove" onclick="removeTracker('${trackerId}')"><i class="fas fa-times"></i></button>
+                <h3><i class="fas fa-graduation-cap"></i> ${major}</h3>
+                
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: ${data.progress}%"></div>
+                </div>
+                <p style="text-align: right; margin-top: 10px; font-weight: bold;">${data.progress}% Completed</p>
+                
+                <div class="progress-grid">
+                    <div class="bg-darker">
+                        <h4>Completed</h4>
+                        <ul class="req-list" style="max-height: 150px; overflow-y: auto;">${completedHtml}</ul>
+                    </div>
+                    <div class="bg-darker">
+                        <h4>Missing</h4>
+                        <ul class="req-list" style="max-height: 150px; overflow-y: auto;">${remainingHtml}</ul>
+                    </div>
+                </div>
+            `;
+        }
+        
+        card.innerHTML = contentHtml;
         container.insertBefore(card, container.firstChild);
         activeTrackers++;
         majorInput.value = '';
@@ -441,7 +544,40 @@ function parseTerm(termStr) {
     return year * 10 + seasonWeight;
 }
 
-// View schedule modal
+// Show thinking animation
+function showThinkingAnimation() {
+    const container = document.getElementById('chat-container');
+    if (!container) return null;
+    
+    const thinkingId = 'thinking_' + Date.now();
+    const thinkingDiv = document.createElement('div');
+    thinkingDiv.id = thinkingId;
+    thinkingDiv.className = 'message message-ai thinking-message';
+    thinkingDiv.innerHTML = `
+        <div class="message-content">
+            <div class="thinking-animation">
+                <div class="thinking-dot"></div>
+                <div class="thinking-dot"></div>
+                <div class="thinking-dot"></div>
+            </div>
+            <span class="thinking-text">Thinking...</span>
+        </div>
+    `;
+    container.appendChild(thinkingDiv);
+    container.scrollTop = container.scrollHeight;
+    return thinkingId;
+}
+
+// Remove thinking animation
+function removeThinkingAnimation(thinkingId) {
+    if (!thinkingId) return;
+    const thinkingEl = document.getElementById(thinkingId);
+    if (thinkingEl) {
+        thinkingEl.remove();
+    }
+}
+
+// View schedule modal with pagination
 window.viewSchedule = function(scheduleId) {
     const list = document.getElementById('schedules-list');
     if (!list) return;
@@ -451,26 +587,155 @@ window.viewSchedule = function(scheduleId) {
     if (!schedules) return;
     
     window.currentScheduleId = scheduleId;
+    window.currentScheduleIndex = 0;
+    window.totalSchedules = schedules.length;
 
-    schedules.forEach((sched, i) => {
-        const card = document.createElement('div');
-        card.className = 'schedule-card';
-        let html = `<h4>Option ${i + 1}</h4>`;
+    // Render single schedule
+    function renderSchedule(index) {
+        if (index < 0 || index >= schedules.length) return;
         
-        sched.forEach(cls => {
-            html += `
-                <div class="course-row">
-                    <span><strong>${cls.course}</strong> ${cls.title ? `- ${cls.title}` : ''}</span>
-                    <span>${cls.times.join(', ')}</span>
+        list.innerHTML = '';
+        const sched = schedules[index];
+        
+        // Handle both old format (array) and new format (object with courses/benefits)
+        const scheduleCourses = sched.courses || sched;
+        const scheduleBenefits = sched.benefits || {};
+        
+        // Campus legend
+        const campusLegend = `
+            <div class="campus-legend">
+                <span class="legend-label">Campus Legend:</span>
+                <span class="campus-badge campus-online">Online</span>
+                <span class="campus-badge campus-busch">Busch</span>
+                <span class="campus-badge campus-college-ave">College Avenue</span>
+                <span class="campus-badge campus-douglass">Douglass / Cook</span>
+                <span class="campus-badge campus-livingston">Livingston</span>
+                <span class="campus-badge campus-downtown">Downtown</span>
+                <span class="campus-badge campus-camden">Camden</span>
+                <span class="campus-badge campus-newark">Newark</span>
+                <span class="campus-badge campus-other">Other/Unknown</span>
+            </div>
+        `;
+        
+        // Benefits breakdown
+        let benefitsHtml = '';
+        if (scheduleBenefits.benefits && scheduleBenefits.benefits.length > 0) {
+            benefitsHtml = `
+                <div class="schedule-benefits">
+                    <h5><i class="fas fa-star"></i> Schedule Benefits</h5>
+                    <div class="benefits-list">
+                        ${scheduleBenefits.benefits.map(b => `<span class="benefit-badge">${b}</span>`).join('')}
+                    </div>
+                    <div class="schedule-stats">
+                        <span><strong>Total Credits:</strong> ${scheduleBenefits.total_credits || 'N/A'}</span>
+                        <span><strong>Campuses:</strong> ${scheduleBenefits.campuses ? scheduleBenefits.campuses.join(', ') : 'N/A'}</span>
+                    </div>
                 </div>
             `;
+        }
+        
+        // Group by day
+        const scheduleByDay = {};
+        let totalCredits = 0;
+        
+        scheduleCourses.forEach(cls => {
+            totalCredits += cls.credits || 3;
+            (cls.times || []).forEach(timeInfo => {
+                const day = typeof timeInfo === 'string' ? timeInfo.match(/^([M|T|W|TH|F]+)/)?.[1] : timeInfo.day;
+                if (day) {
+                    if (!scheduleByDay[day]) {
+                        scheduleByDay[day] = [];
+                    }
+                    scheduleByDay[day].push({
+                        course: cls.course,
+                        title: cls.title,
+                        section: cls.section_number || 'N/A',
+                        credits: cls.credits || 3,
+                        timeInfo: typeof timeInfo === 'string' ? {time_str: timeInfo} : timeInfo,
+                        campus: cls.campus || (typeof timeInfo === 'object' ? timeInfo.campus : ''),
+                        room: typeof timeInfo === 'object' ? timeInfo.room : '',
+                        instructors: cls.instructors || []
+                    });
+                }
+            });
         });
+        
+        // Build schedule card
+        const card = document.createElement('div');
+        card.className = 'schedule-card-detailed';
+        
+        let html = `
+            ${campusLegend}
+            <div class="schedule-header">
+                <h4>Schedule Option ${index + 1} of ${schedules.length}</h4>
+                <div class="schedule-nav">
+                    <button class="btn-nav" onclick="navigateSchedule(-1)" ${index === 0 ? 'disabled' : ''}>
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <span class="schedule-counter">${index + 1} / ${schedules.length}</span>
+                    <button class="btn-nav" onclick="navigateSchedule(1)" ${index === schedules.length - 1 ? 'disabled' : ''}>
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            ${benefitsHtml}
+            <div class="schedule-week-view">
+        `;
+        
+        const days = ['M', 'T', 'W', 'TH', 'F'];
+        days.forEach(day => {
+            const dayName = {'M': 'Monday', 'T': 'Tuesday', 'W': 'Wednesday', 'TH': 'Thursday', 'F': 'Friday'}[day];
+            html += `<div class="schedule-day-column">`;
+            html += `<div class="schedule-day-header">${dayName}</div>`;
+            if (scheduleByDay[day]) {
+                scheduleByDay[day].forEach(item => {
+                    const campusClass = `campus-${item.campus.toLowerCase().replace(/\s+/g, '-')}`;
+                    html += `
+                        <div class="schedule-course-block ${campusClass}">
+                            <div class="schedule-course-code"><strong>${item.course}</strong> <span class="section-number">Sec ${item.section}</span></div>
+                            <div class="schedule-course-title">${item.title || ''}</div>
+                            <div class="schedule-course-time">${item.timeInfo.time_str || item.timeInfo}</div>
+                            <div class="schedule-course-details">
+                                <span class="credits-badge">${item.credits} credits</span>
+                                ${item.room ? `<span class="room-info"><i class="fas fa-map-marker-alt"></i> ${item.room}</span>` : ''}
+                            </div>
+                            ${item.campus ? `<div class="schedule-course-campus campus-${item.campus.toLowerCase().replace(/\s+/g, '-')}">${item.campus}</div>` : ''}
+                            ${item.instructors && item.instructors.length > 0 ? `<div class="schedule-instructor"><i class="fas fa-user"></i> ${item.instructors[0]}</div>` : ''}
+                        </div>
+                    `;
+                });
+            } else {
+                html += '<div class="schedule-empty-day">No classes</div>';
+            }
+            html += `</div>`;
+        });
+        
+        html += '</div>';
+        html += `<div class="schedule-footer"><strong>Total Credits:</strong> ${totalCredits}</div>`;
         
         card.innerHTML = html;
         list.appendChild(card);
-    });
+    }
+    
+    // Initial render
+    renderSchedule(0);
+    
+    // Store render function globally for navigation
+    window.renderSchedule = renderSchedule;
     
     document.getElementById('schedule-modal').style.display = 'flex';
+};
+
+// Navigate between schedules
+window.navigateSchedule = function(direction) {
+    if (window.currentScheduleIndex === undefined) return;
+    const newIndex = window.currentScheduleIndex + direction;
+    if (newIndex >= 0 && newIndex < window.totalSchedules) {
+        window.currentScheduleIndex = newIndex;
+        if (window.renderSchedule) {
+            window.renderSchedule(newIndex);
+        }
+    }
 };
 
 // GPA Calculator
