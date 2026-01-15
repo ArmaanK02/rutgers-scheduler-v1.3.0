@@ -7,7 +7,7 @@ import json
 import time
 
 # PASTE YOUR FRESH KEY HERE
-TEST_KEY = "AIzaSyBxHfhLl042m9jcG1wkblule0kUNDoLXuY" 
+TEST_KEY = "AIzaSyCdyXmDsYG4_2tTWlCFCCUJxFN1xuGV-04" 
 
 def run_debug():
     print(f"\n🧪 Testing key: {TEST_KEY[:10]}...{TEST_KEY[-4:]}\n")

@@ -10,6 +10,7 @@ class Config:
         key.strip() for key in os.getenv('GEMINI_API_KEY', '').split(',') if key.strip()
     ]
     DATA_FILE_PATH = os.getenv('DATA_FILE_PATH', 'rutgers_scheduler_data.json')
+    MAX_SCHEDULES = int(os.getenv('MAX_SCHEDULES', '50'))
 
 def get_config():
     return Config
