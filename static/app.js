@@ -3,6 +3,9 @@ if (!window.scheduleCache) {
     window.scheduleCache = {};
 }
 
+let activeTrackers = 0;
+const MAX_TRACKERS = 5;
+
 document.addEventListener('DOMContentLoaded', () => {
     const chatContainer = document.getElementById('chat-container');
     const chatForm = document.getElementById('chat-form');
@@ -11,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     initializeScheduleButtons();
     initializeDeleteButtons();
+    initializeSearchableDropdowns(); // New function for search UI
     
     if(chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
 
@@ -57,6 +61,134 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// --- Searchable Dropdown Logic ---
+function initializeSearchableDropdowns() {
+    const input = document.getElementById('major-search');
+    const list = document.getElementById('major-dropdown-list');
+    
+    if (!input || !list) return; // Only run on progress page
+    
+    const items = Array.from(list.children);
+    
+    // Filter logic
+    input.addEventListener('input', () => {
+        const val = input.value.toLowerCase();
+        let visibleCount = 0;
+        
+        items.forEach(item => {
+            if (item.innerText.toLowerCase().includes(val)) {
+                item.style.display = 'block';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        list.style.display = visibleCount > 0 ? 'block' : 'none';
+    });
+    
+    // Selection logic
+    items.forEach(item => {
+        item.addEventListener('click', () => {
+            input.value = item.getAttribute('data-value');
+            list.style.display = 'none';
+        });
+    });
+    
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.searchable-dropdown')) {
+            list.style.display = 'none';
+        }
+    });
+    
+    // Show on focus
+    input.addEventListener('focus', () => {
+        if(input.value) input.dispatchEvent(new Event('input'));
+        else list.style.display = 'block';
+    });
+}
+
+// --- Multi-Tracker Logic ---
+async function addTracker() {
+    const majorInput = document.getElementById('major-search');
+    const major = majorInput.value;
+    const container = document.getElementById('active-trackers');
+    
+    if (!major) {
+        alert("Please select a major, minor, or certificate.");
+        return;
+    }
+    
+    if (activeTrackers >= MAX_TRACKERS) {
+        alert("Maximum of 5 trackers allowed.");
+        return;
+    }
+    
+    try {
+        const res = await fetch('/api/check_progress', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({major})
+        });
+        
+        const data = await res.json();
+        
+        // Build the tracker card HTML
+        const trackerId = 'tracker-' + Date.now();
+        const card = document.createElement('div');
+        card.className = 'data-card tracker-card';
+        card.id = trackerId;
+        
+        const completedHtml = data.completed.length ? 
+            data.completed.map(c => `<li><i class="fas fa-check-circle text-success"></i> ${c}</li>`).join('') :
+            '<li style="color:#666">No requirements met yet</li>';
+            
+        const remainingHtml = data.remaining.length ?
+            data.remaining.slice(0, 5).map(c => `<li><i class="fas fa-circle text-secondary"></i> ${c}</li>`).join('') + (data.remaining.length > 5 ? `<li>...and ${data.remaining.length - 5} more</li>` : '') :
+            '<li><i class="fas fa-star text-success"></i> All done!</li>';
+
+        card.innerHTML = `
+            <button class="tracker-remove" onclick="removeTracker('${trackerId}')"><i class="fas fa-times"></i></button>
+            <h3><i class="fas fa-graduation-cap"></i> ${major}</h3>
+            
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" style="width: ${data.progress}%"></div>
+            </div>
+            <p style="text-align: right; margin-top: 10px; font-weight: bold;">${data.progress}% Completed</p>
+            
+            <div class="progress-grid">
+                <div class="bg-darker">
+                    <h4>Completed</h4>
+                    <ul class="req-list" style="max-height: 150px; overflow-y: auto;">${completedHtml}</ul>
+                </div>
+                <div class="bg-darker">
+                    <h4>Missing</h4>
+                    <ul class="req-list" style="max-height: 150px; overflow-y: auto;">${remainingHtml}</ul>
+                </div>
+            </div>
+        `;
+        
+        container.insertBefore(card, container.firstChild);
+        activeTrackers++;
+        majorInput.value = ''; // Reset input
+        
+    } catch (err) {
+        console.error(err);
+        alert("Could not load requirements for: " + major);
+    }
+}
+
+function removeTracker(id) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.remove();
+        activeTrackers--;
+    }
+}
+
+// --- Standard Functions (Unchanged mostly) ---
+
 function initializeScheduleButtons() {
     document.querySelectorAll('.view-schedule-btn').forEach(btn => {
         if (btn.dataset.listening) return;
@@ -79,7 +211,6 @@ function initializeDeleteButtons() {
             e.preventDefault();
             e.stopPropagation();
             if (!confirm("Are you sure you want to delete this chat?")) return;
-            
             const chatId = btn.dataset.chatId;
             try {
                 const res = await fetch('/api/delete_chat', {
@@ -101,7 +232,6 @@ function appendMessage(role, text, schedules = null) {
     const container = document.getElementById('chat-container');
     const msgDiv = document.createElement('div');
     msgDiv.className = `message message-${role}`;
-    
     let contentHtml = `<div class="message-content">${text}`;
     if (schedules && schedules.length > 0) {
         const scheduleId = 'sched_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
@@ -192,24 +322,12 @@ async function addManualCourse() {
     }
 }
 
+// Check Progress is now handled by addTracker for multi-track support
+// But we keep this if needed for legacy single mode or refactored into addTracker
 async function checkProgress() {
-    const major = document.getElementById('major-select').value;
-    if(!major) return;
-    try {
-        const res = await fetch('/api/check_progress', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({major})
-        });
-        const data = await res.json();
-        document.getElementById('progress-bar-fill').style.width = data.progress + '%';
-        document.getElementById('progress-text').innerText = `${data.progress}% Completed`;
-        
-        document.getElementById('completed-list').innerHTML = data.completed.map(c => `<li><i class="fas fa-check-circle text-success"></i> ${c}</li>`).join('');
-        document.getElementById('remaining-list').innerHTML = data.remaining.map(c => `<li><i class="fas fa-circle text-secondary"></i> ${c}</li>`).join('');
-        
-        document.getElementById('progress-results').style.display = 'block';
-    } catch (err) { console.error(err); }
+    // This function is effectively replaced by addTracker for the new UI
+    // Leaving empty or redirecting logic to avoid errors if called elsewhere
+    addTracker(); 
 }
 
 function sortHistory() {
@@ -271,8 +389,6 @@ window.viewSchedule = function(scheduleId) {
         btn.onclick = () => copyScheduleToClipboard(scheduleId);
         modalContent.appendChild(btn);
     }
-    
-    // Store current schedule ID for copy function
     window.currentScheduleId = scheduleId;
 
     schedules.forEach((sched, i) => {
@@ -294,20 +410,12 @@ window.viewSchedule = function(scheduleId) {
 };
 
 window.copyScheduleToClipboard = function(scheduleId) {
-    // Just copy the first option for now or the "best" one?
-    // Let's copy the text of the first option visible
     const schedules = window.scheduleCache[scheduleId || window.currentScheduleId];
     if (!schedules || schedules.length === 0) return;
-    
     const option1 = schedules[0];
     let text = "My Scarlet Scheduler Plan:\n\n";
-    option1.forEach(cls => {
-        text += `${cls.course} (${cls.title})\n  ${cls.times.join(', ')}\n\n`;
-    });
-    
-    navigator.clipboard.writeText(text).then(() => {
-        alert("Schedule copied to clipboard!");
-    });
+    option1.forEach(cls => { text += `${cls.course} (${cls.title})\n  ${cls.times.join(', ')}\n\n`; });
+    navigator.clipboard.writeText(text).then(() => { alert("Schedule copied to clipboard!"); });
 };
 
 function addGpaRow() {
@@ -340,7 +448,6 @@ function calculateGpa() {
     rows.forEach(row => {
         const credits = parseFloat(row.querySelector('.course-credits').value) || 0;
         const grade = parseFloat(row.querySelector('.course-grade').value) || 0;
-        
         if (credits > 0) {
             totalPoints += (credits * grade);
             totalCredits += credits;

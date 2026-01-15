@@ -1,5 +1,5 @@
 """
-Scarlet Scheduler AI - v2.1.0 (Feature Expansion)
+Scarlet Scheduler AI - v2.2.0 (What-If & Degree Map)
 """
 
 import os
@@ -24,7 +24,7 @@ from prerequisite_parser import PrerequisiteParser
 from models import db, User, Chat, Message
 
 # --- VERSION ---
-VERSION = "2.1.0"
+VERSION = "2.2.0"
 
 # --- LOGGING SETUP ---
 logging.basicConfig(
@@ -88,14 +88,12 @@ with app.app_context():
     db.create_all()
 
 # --- BACKGROUND DATA LOAD ---
-# We initialize the repository and start fetching historical titles in the background
 repo = DataServiceFactory.get_repository()
 def load_history_background():
     logger.info("⏳ Starting background fetch of historical course titles...")
     repo.fetch_historical_titles()
     logger.info("✅ Background fetch complete.")
 
-# Start the thread
 threading.Thread(target=load_history_background, daemon=True).start()
 
 
@@ -251,12 +249,22 @@ def progress_dashboard():
     majors = sorted(list(catalog_db.get('majors', {}).keys()))
     return render_template('progress.html', majors=majors, user=current_user)
 
+@app.route('/what-if')
+@login_required
+def what_if_dashboard():
+    majors = sorted(list(catalog_db.get('majors', {}).keys()))
+    return render_template('what_if.html', majors=majors, user=current_user)
+
+@app.route('/degree-map')
+@login_required
+def degree_map_dashboard():
+    return render_template('degree_map.html', user=current_user)
+
 # --- API ROUTES ---
 
 @app.route('/api/new_chat', methods=['POST'])
 @login_required
 def new_chat():
-    # Check for empty active chats to prevent spam
     empty_chat = Chat.query.filter_by(user_id=current_user.id).filter(~Chat.messages.any()).first()
     if empty_chat:
         return jsonify({'id': empty_chat.id, 'message': 'Redirected to existing empty chat'})
@@ -311,7 +319,6 @@ def send_message():
         if not codes:
              response_text = "I couldn't identify the courses. Please try course codes like 198:111."
         else:
-            # Re-fetch repo here as it is singleton
             current_repo = DataServiceFactory.get_repository()
             courses_obj = current_repo.get_courses(codes)
             
@@ -366,17 +373,13 @@ def _format_schedules_helper(schedules, courses_obj):
 @login_required
 def parse_history():
     data = request.get_json()
-    
-    # Use the repo to resolve titles
     repo = DataServiceFactory.get_repository()
     
-    # Pass repo.get_course_title as the resolver callback
     taken_courses = PrerequisiteParser.parse_copy_paste(
         data.get('text', ''), 
         title_resolver=repo.get_course_title
     )
     
-    # Merge with existing history instead of overwriting
     existing = current_user.get_history()
     existing_codes = {c['short_code'] for c in existing}
     
@@ -403,17 +406,13 @@ def add_manual_course():
     data = request.json
     code = data.get('code')
     title = data.get('title')
-    
-    # Force flag allows skipping verification if user insists
     force = data.get('force', False)
     
     if not title and not force:
-        # Try to resolve title
         repo = DataServiceFactory.get_repository()
         found_title = repo.get_course_title(code)
         
         if found_title == "Unknown Title":
-            # Title not found, ask user to provide it
             return jsonify({'status': 'title_needed', 'message': 'Title not found'})
         else:
             title = found_title
@@ -461,6 +460,95 @@ def check_progress():
         'remaining': remaining,
         'total_reqs': len(requirements)
     })
+
+# --- NEW WHAT-IF LOGIC ---
+@app.route('/api/what_if', methods=['POST'])
+@login_required
+def what_if_analysis():
+    major = request.json.get('major')
+    major_data = catalog_db.get('majors', {}).get(major, {})
+    
+    # We need a robust list of requirements
+    # Assuming 'requirements' list in JSON contains course codes strings
+    requirements = major_data.get('requirements', [])
+    
+    history = current_user.get_history()
+    taken_codes = {h['short_code'] for h in history}
+    
+    matched_courses = []
+    remaining_courses = []
+    
+    for req in requirements:
+        # Check if requirement matches any taken course
+        # Simple match for now, could be improved with regex/wildcards
+        if req in taken_codes:
+            matched_courses.append(req)
+        else:
+            remaining_courses.append(req)
+            
+    # Calculate simple match score
+    match_score = int((len(matched_courses) / len(requirements) * 100)) if requirements else 0
+    
+    return jsonify({
+        'match_score': match_score,
+        'matched': matched_courses,
+        'remaining': remaining_courses,
+        'total_requirements': len(requirements)
+    })
+
+# --- NEW DEGREE MAP LOGIC ---
+@app.route('/api/degree_graph', methods=['GET'])
+@login_required
+def degree_graph_data():
+    # Construct a simple graph for visualization
+    # Nodes: All courses in history + courses in current major (if selected, or just generic example)
+    # Edges: Prerequisites (Need a prereq DB source, mocking for demo)
+    
+    history = current_user.get_history()
+    nodes = []
+    edges = []
+    
+    # Add History Nodes
+    for h in history:
+        nodes.append({
+            'data': {
+                'id': h['short_code'], 
+                'label': h['short_code'], 
+                'color': '#4caf50' # Green for taken
+            }
+        })
+        
+    # Example Mock Prerequisites (Ideally this comes from a DB)
+    # Let's say Calc 1 (640:151) -> Calc 2 (640:152) -> Calc 3 (640:251)
+    mock_prereqs = {
+        '640:152': ['640:151'],
+        '640:251': ['640:152'],
+        '198:112': ['198:111'],
+        '198:211': ['198:112'],
+        '198:344': ['198:211', '198:205']
+    }
+    
+    added_ids = {n['data']['id'] for n in nodes}
+    
+    # Add hypothetical edges if nodes exist
+    for target, prereqs in mock_prereqs.items():
+        for p in prereqs:
+            # Add nodes if missing (as grey 'future' nodes)
+            if p not in added_ids:
+                nodes.append({'data': {'id': p, 'label': p, 'color': '#888'}})
+                added_ids.add(p)
+            if target not in added_ids:
+                nodes.append({'data': {'id': target, 'label': target, 'color': '#888'}})
+                added_ids.add(target)
+            
+            edges.append({
+                'data': {
+                    'source': p, 
+                    'target': target
+                }
+            })
+            
+    return jsonify({'elements': nodes + edges})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

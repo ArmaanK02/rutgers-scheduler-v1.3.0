@@ -60,7 +60,8 @@ body {
     display: flex; 
     flex-direction: column; 
     padding: 20px; 
-    font-family: var(--font-main); /* Ensure font inheritance */
+    font-family: var(--font-main);
+    flex-shrink: 0; /* Prevent sidebar from shrinking */
 }
 .sidebar-header h3 { margin-bottom: 20px; color: var(--accent-red); font-family: var(--font-main); }
 .btn-new-chat { width: 100%; background: var(--bg-card); color: white; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; text-align: left; margin-bottom: 20px; font-family: var(--font-main); }
@@ -81,10 +82,48 @@ body {
 .history-item-wrapper:hover .delete-chat-btn { display: block; }
 .delete-chat-btn:hover { color: var(--accent-red); }
 
-.user-profile { border-top: 1px solid var(--border-color); padding-top: 15px; display: flex; justify-content: space-between; align-items: center; }
-.user-info { display: flex; align-items: center; gap: 10px; font-family: var(--font-main); }
-.avatar { width: 32px; height: 32px; background: var(--accent-red); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-.btn-logout { color: var(--text-secondary); }
+/* User Profile Fixes */
+.user-profile { 
+    border-top: 1px solid var(--border-color); 
+    padding-top: 15px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    /* Ensure it stays at bottom even if sidebar content is short */
+    margin-top: auto; 
+    gap: 10px; /* Space between name and logout */
+}
+.user-info { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    font-family: var(--font-main); 
+    /* Force text truncation */
+    flex: 1;
+    min-width: 0; 
+}
+.user-info span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+.avatar { 
+    width: 32px; 
+    height: 32px; 
+    background: var(--accent-red); 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-weight: bold;
+    flex-shrink: 0; /* Don't squash avatar */
+}
+.btn-logout { 
+    color: var(--text-secondary); 
+    flex-shrink: 0; /* Don't squash logout button */
+    padding: 5px;
+}
 .btn-logout:hover { color: white; }
 
 /* Main Chat */
