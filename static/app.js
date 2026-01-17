@@ -1,4 +1,4 @@
-// Scarlet Scheduler AI - Frontend JavaScript v3.0.0
+// Scarlet Scheduler AI - Intelligent Frontend v4.1 (Complete)
 
 // Global cache for schedule data
 if (!window.scheduleCache) {
@@ -9,70 +9,267 @@ let activeTrackers = 0;
 const MAX_TRACKERS = 5;
 
 document.addEventListener('DOMContentLoaded', () => {
-    const chatContainer = document.getElementById('chat-container');
-    const chatForm = document.getElementById('chat-form');
-    const userInput = document.getElementById('user-input');
-    const newChatBtn = document.getElementById('new-chat-btn');
-    
+    // 1. Initialize Core UI Features
+    initializeToS();
+    initializeTheme();
+    initializeChat();
+
+    // 2. Initialize Legacy/Functional Features
     initializeScheduleButtons();
     initializeDeleteButtons();
     initializeSearchableDropdowns();
-    
-    // Scroll to bottom of chat
+
+    // 3. Auto-scroll chat on load
+    const chatContainer = document.getElementById('chat-container');
     if (chatContainer) {
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
-    // Handle chat form submission
-    if (chatForm) {
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const text = userInput.value.trim();
-            const chatId = document.getElementById('current-chat-id').value;
-            
-            if (!text) return;
-
-            // Show user message immediately
-            appendMessage('user', text);
-            userInput.value = '';
-            userInput.disabled = true;
-
-            // Show thinking animation
-            const thinkingId = showThinkingAnimation();
-
-            try {
-                const response = await fetch('/api/send_message', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_id: chatId, text: text })
-                });
-                
-                // Remove thinking animation
-                removeThinkingAnimation(thinkingId);
-                
-                const data = await response.json();
-                appendMessage('ai', data.ai_message.text, data.ai_message.schedules);
-                
-                // Update URL if chat ID changed
-                if (chatId != data.chat_id) {
-                    window.history.pushState({}, '', `/chat?id=${data.chat_id}`);
-                }
-            } catch (err) {
-                console.error(err);
-                removeThinkingAnimation(thinkingId);
-                appendMessage('ai', "Sorry, I encountered an error. Please try again.");
-            } finally {
-                userInput.disabled = false;
-                userInput.focus();
-            }
-        });
-    }
-
-    // Handle new chat button
+    // 4. Handle "New Chat" button if present
+    const newChatBtn = document.getElementById('new-chat-btn'); // Sidebar button
     if (newChatBtn) {
         newChatBtn.addEventListener('click', createNewChat);
     }
+
+    // 5. Check for Demo Mode
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('demo') === 'true') {
+        // If we are on the chat page
+        if (document.getElementById('chat-container')) {
+            startDemo();
+        }
+    }
 });
+
+/* =========================================
+   SECTION 1: NEW UI FEATURES (Theme, ToS)
+   ========================================= */
+
+// --- Terms of Service (Safe Harbor) ---
+function initializeToS() {
+    const modal = document.getElementById('tos-modal');
+    const btn = document.getElementById('accept-tos-btn');
+    
+    // Check if modal exists first
+    if (!modal) return;
+    
+    if (!localStorage.getItem('tos_accepted_v4')) {
+        modal.classList.add('active');
+    }
+
+    if (btn) {
+        btn.addEventListener('click', () => {
+            localStorage.setItem('tos_accepted_v4', 'true');
+            modal.classList.remove('active');
+        });
+    }
+}
+
+// --- Theme Toggle (Dark/Light) ---
+function initializeTheme() {
+    const toggle = document.getElementById('theme-toggle');
+    const icon = toggle ? toggle.querySelector('.fa-toggle-on') : null;
+    const html = document.documentElement;
+
+    // Check saved preference or default to dark
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    html.setAttribute('data-theme', savedTheme);
+    updateToggleIcon(savedTheme);
+
+    if (toggle) {
+        toggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateToggleIcon(newTheme);
+        });
+    }
+
+    function updateToggleIcon(theme) {
+        if (!icon) return;
+        if (theme === 'dark') {
+            icon.className = 'fa-solid fa-toggle-on';
+            icon.style.color = 'var(--accent-primary)';
+        } else {
+            icon.className = 'fa-solid fa-toggle-off';
+            icon.style.color = 'var(--text-muted)';
+        }
+    }
+}
+
+/* =========================================
+   SECTION 2: CHAT LOGIC & DEMO MODE
+   ========================================= */
+
+function initializeChat() {
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('user-input');
+    // Note: The new UI uses ID "chat-container" for the history list, 
+    // ensuring compatibility with old logic
+    const container = document.getElementById('chat-container');
+
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+
+        // UI: Add User Message
+        addMessage(text, 'user');
+        input.value = '';
+        input.disabled = true;
+        
+        // UI: Add Thinking Indicator
+        const thinkingId = addThinkingIndicator();
+
+        try {
+            // API Call
+            const chatId = document.getElementById('current-chat-id').value;
+            const response = await fetch('/api/send_message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: text })
+            });
+            const data = await response.json();
+
+            // UI: Remove Thinking, Add AI Response
+            removeThinkingIndicator(thinkingId);
+            addMessage(data.ai_message.text, 'ai', data.ai_message.schedules);
+
+            // Update URL if new chat
+            if (chatId != data.chat_id) {
+                const hiddenInput = document.getElementById('current-chat-id');
+                if (hiddenInput) hiddenInput.value = data.chat_id;
+                window.history.pushState({}, '', `/chat?id=${data.chat_id}`);
+                
+                // Refresh to show new chat in sidebar if needed (simple way)
+                // Or ideally, update DOM dynamically. For now, we update history state.
+            }
+
+        } catch (err) {
+            console.error(err);
+            removeThinkingIndicator(thinkingId);
+            addMessage("I'm having trouble connecting to the advising server. Please try again.", 'ai');
+        } finally {
+            input.disabled = false;
+            input.focus();
+        }
+    });
+}
+
+function addMessage(text, role, schedules = null) {
+    const container = document.getElementById('chat-container');
+    if (!container) return;
+
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+    
+    let avatarIcon = role === 'user' ? '<i class="fa-solid fa-user"></i>' : '<i class="fa-solid fa-robot" style="color:var(--accent-primary)"></i>';
+    
+    let html = `
+        <div class="msg-avatar">${avatarIcon}</div>
+        <div class="msg-content">
+            ${escapeHtml(text)}
+    `;
+
+    // If schedules exist, append a "Superior" preview card
+    if (schedules && schedules.length > 0) {
+        const schedId = 'sched_' + Date.now();
+        window.scheduleCache = window.scheduleCache || {};
+        window.scheduleCache[schedId] = schedules;
+
+        html += `
+            <div class="schedule-preview-card">
+                <div class="schedule-header-row">
+                    <span style="font-weight:600; color:var(--accent-primary)">
+                        <i class="fa-solid fa-layer-group"></i> ${schedules.length} Options Found
+                    </span>
+                    <span class="badge-benefit">AI Optimized</span>
+                </div>
+                <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
+                    I've analyzed constraints and found ${schedules.length} conflict-free paths.
+                </div>
+                <button class="btn-action" onclick="viewSchedule('${schedId}')" style="width:100%">
+                    <i class="fa-regular fa-eye"></i> View & Compare Schedules
+                </button>
+            </div>
+        `;
+    }
+
+    html += `</div>`;
+    div.innerHTML = html;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function addThinkingIndicator() {
+    const container = document.getElementById('chat-container');
+    if (!container) return null;
+
+    const id = 'thinking-' + Date.now();
+    const div = document.createElement('div');
+    div.className = 'message ai';
+    div.id = id;
+    div.innerHTML = `
+        <div class="msg-avatar"><i class="fa-solid fa-robot" style="color:var(--accent-primary)"></i></div>
+        <div class="msg-content">
+            <div class="typing-dots">
+                <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            </div>
+        </div>
+    `;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    return id;
+}
+
+function removeThinkingIndicator(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+}
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML.replace(/\n/g, '<br>');
+}
+
+// --- Demo Mode Logic ---
+function startDemo() {
+    const demoSteps = [
+        { text: "Find me an easy schedule for Computer Science.", delay: 1000 },
+        { text: "Building schedule... Finding CS 111, Math 151...", role: "ai", delay: 2000 },
+        { text: "I found 3 schedules. Option 1 has no Friday classes!", role: "ai", schedules: [{id: 1, courses: []}], delay: 3500 }
+    ];
+
+    let currentStep = 0;
+    
+    function playStep() {
+        if (currentStep >= demoSteps.length) return;
+        
+        const step = demoSteps[currentStep];
+        setTimeout(() => {
+            if (step.role === 'ai') {
+                addMessage(step.text, 'ai', step.schedules);
+            } else {
+                addMessage(step.text, 'user');
+            }
+            currentStep++;
+            playStep();
+        }, step.delay);
+    }
+    
+    // Clear chat first
+    const container = document.getElementById('chat-container');
+    if (container) {
+        container.innerHTML = ''; 
+        playStep();
+    }
+}
+window.startDemo = startDemo;
 
 // Create new chat
 async function createNewChat() {
@@ -84,9 +281,42 @@ async function createNewChat() {
         console.error(err);
     }
 }
-
-// Make it globally available
 window.createNewChat = createNewChat;
+
+/* =========================================
+   SECTION 3: UTILITY FEATURES (History, Dropdowns)
+   ========================================= */
+
+// Delete chat button initialization
+function initializeDeleteButtons() {
+    document.querySelectorAll('.delete-chat-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!confirm("Are you sure you want to delete this chat?")) return;
+            
+            const chatId = btn.getAttribute('data-chat-id');
+            try {
+                const res = await fetch('/api/delete_chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({chat_id: chatId})
+                });
+                
+                if (res.ok) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.get('id') == chatId) {
+                        window.location.href = '/chat';
+                    } else {
+                        window.location.reload();
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+    });
+}
 
 // Searchable Dropdown Logic
 function initializeSearchableDropdowns() {
@@ -135,7 +365,10 @@ function initializeSearchableDropdowns() {
     });
 }
 
-// Multi-Tracker Logic
+/* =========================================
+   SECTION 4: TRACKER & PROGRESS LOGIC
+   ========================================= */
+
 async function addTracker() {
     const majorInput = document.getElementById('major-search');
     const major = majorInput.value;
@@ -162,7 +395,7 @@ async function addTracker() {
         
         const trackerId = 'tracker-' + Date.now();
         const card = document.createElement('div');
-        card.className = 'data-card tracker-card';
+        card.className = 'clean-card tracker-card'; // Changed to clean-card
         card.id = trackerId;
         
         // Check if we have structured requirements
@@ -171,7 +404,7 @@ async function addTracker() {
         let contentHtml = '';
         
         if (hasStructured) {
-            // Display structured requirements
+            // Display structured requirements (New complex format)
             const coreCompleted = data.core_requirements.completed || [];
             const coreRemaining = data.core_requirements.remaining || [];
             const coreTotal = data.core_requirements.total || 0;
@@ -244,7 +477,7 @@ async function addTracker() {
             electivesHtml += '</div>';
             
             contentHtml = `
-                <button class="tracker-remove" onclick="removeTracker('${trackerId}')"><i class="fas fa-times"></i></button>
+                <button class="tracker-remove" onclick="removeTracker('${trackerId}')" style="position:absolute; top:20px; right:20px; background:transparent; border:none; color:#666; cursor:pointer;"><i class="fas fa-times"></i></button>
                 <h3><i class="fas fa-graduation-cap"></i> ${major}</h3>
                 
                 <div class="progress-bar-container">
@@ -269,7 +502,7 @@ async function addTracker() {
                 '<li><i class="fas fa-star text-success"></i> All done!</li>';
 
             contentHtml = `
-                <button class="tracker-remove" onclick="removeTracker('${trackerId}')"><i class="fas fa-times"></i></button>
+                <button class="tracker-remove" onclick="removeTracker('${trackerId}')" style="position:absolute; top:20px; right:20px; background:transparent; border:none; color:#666; cursor:pointer;"><i class="fas fa-times"></i></button>
                 <h3><i class="fas fa-graduation-cap"></i> ${major}</h3>
                 
                 <div class="progress-bar-container">
@@ -309,101 +542,14 @@ function removeTracker(id) {
     }
 }
 
-// Schedule button initialization
-function initializeScheduleButtons() {
-    document.querySelectorAll('.view-schedule-btn').forEach(btn => {
-        if (btn.dataset.listening) return;
-        
-        const jsonStr = btn.getAttribute('data-schedule-json');
-        const schedId = btn.getAttribute('data-schedule-id');
-        
-        if (jsonStr && schedId) {
-            try {
-                const scheduleData = JSON.parse(jsonStr);
-                window.scheduleCache[schedId] = scheduleData;
-                btn.addEventListener('click', () => viewSchedule(schedId));
-                btn.dataset.listening = "true";
-            } catch (e) {
-                console.error("Failed to parse schedule data", e);
-            }
-        }
-    });
-}
+// Make globally available
+window.addTracker = addTracker;
+window.removeTracker = removeTracker;
 
-// Delete chat button initialization
-function initializeDeleteButtons() {
-    document.querySelectorAll('.delete-chat-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!confirm("Are you sure you want to delete this chat?")) return;
-            
-            const chatId = btn.dataset.chatId;
-            try {
-                const res = await fetch('/api/delete_chat', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({chat_id: chatId})
-                });
-                
-                if (res.ok) {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    if (urlParams.get('id') == chatId) {
-                        window.location.href = '/chat';
-                    } else {
-                        window.location.reload();
-                    }
-                }
-            } catch (err) {
-                console.error(err);
-            }
-        });
-    });
-}
 
-// Append message to chat
-function appendMessage(role, text, schedules = null) {
-    const container = document.getElementById('chat-container');
-    if (!container) return;
-    
-    // Remove empty state if present
-    const emptyState = container.querySelector('.empty-state');
-    if (emptyState) {
-        emptyState.remove();
-    }
-    
-    const msgDiv = document.createElement('div');
-    msgDiv.className = `message message-${role}`;
-    
-    let contentHtml = `<div class="message-content">${escapeHtml(text)}`;
-    
-    if (schedules && schedules.length > 0) {
-        const scheduleId = 'sched_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
-        window.scheduleCache[scheduleId] = schedules;
-        
-        contentHtml += `
-            <div class="schedule-preview">
-                <button class="btn btn-sm btn-outline view-schedule-btn" 
-                        style="margin-top:10px" 
-                        data-schedule-id="${scheduleId}"
-                        onclick="viewSchedule('${scheduleId}')">
-                    View ${schedules.length} Schedule${schedules.length > 1 ? 's' : ''}
-                </button>
-            </div>`;
-    }
-    
-    contentHtml += `</div><div class="message-time">Just now</div>`;
-    msgDiv.innerHTML = contentHtml;
-    container.appendChild(msgDiv);
-    container.scrollTop = container.scrollHeight;
-}
-
-// Escape HTML to prevent XSS
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+/* =========================================
+   SECTION 5: COURSE HISTORY FUNCTIONS
+   ========================================= */
 
 // Upload course history
 async function uploadHistory() {
@@ -418,7 +564,9 @@ async function uploadHistory() {
         });
         const data = await res.json();
         alert(data.message);
-        document.getElementById('import-modal').style.display = 'none';
+        
+        const modal = document.getElementById('import-modal');
+        if (modal) modal.classList.remove('active'); // Use new class toggle
         
         if (window.location.pathname === '/history') {
             window.location.reload();
@@ -453,17 +601,11 @@ async function addManualCourse() {
     const code = document.getElementById('manual-code').value.trim();
     let title = document.getElementById('manual-title').value.trim();
     const credits = document.getElementById('manual-credits').value;
-    const term = document.getElementById('manual-term').value.trim();
-    const grade = document.getElementById('manual-grade').value.trim();
+    const term = document.getElementById('manual-term') ? document.getElementById('manual-term').value.trim() : ''; // Optional in new modal
+    const grade = document.getElementById('manual-grade') ? document.getElementById('manual-grade').value.trim() : ''; // Optional
     
     if (!code) {
         alert("Course code is required.");
-        return;
-    }
-
-    const termPattern = /^(Fall|Winter|Spring|Summer)?\s*\d{4}$/i;
-    if (term && !termPattern.test(term)) {
-        alert("Invalid term format. Use 'Fall 2024', 'Spring 2025', etc.");
         return;
     }
 
@@ -544,45 +686,74 @@ function parseTerm(termStr) {
     return year * 10 + seasonWeight;
 }
 
-// Show thinking animation
-function showThinkingAnimation() {
-    const container = document.getElementById('chat-container');
-    if (!container) return null;
-    
-    const thinkingId = 'thinking_' + Date.now();
-    const thinkingDiv = document.createElement('div');
-    thinkingDiv.id = thinkingId;
-    thinkingDiv.className = 'message message-ai thinking-message';
-    thinkingDiv.innerHTML = `
-        <div class="message-content">
-            <div class="thinking-animation">
-                <div class="thinking-dot"></div>
-                <div class="thinking-dot"></div>
-                <div class="thinking-dot"></div>
-            </div>
-            <span class="thinking-text">Thinking...</span>
-        </div>
-    `;
-    container.appendChild(thinkingDiv);
-    container.scrollTop = container.scrollHeight;
-    return thinkingId;
+// Expose history functions globally
+window.uploadHistory = uploadHistory;
+window.clearHistory = clearHistory;
+window.addManualCourse = addManualCourse;
+window.sortHistory = sortHistory;
+
+
+/* =========================================
+   SECTION 6: SCHEDULE & GPA UTILS
+   ========================================= */
+
+// Initialize Schedule Button Listeners
+function initializeScheduleButtons() {
+    document.querySelectorAll('.view-schedule-btn').forEach(btn => {
+        if (btn.dataset.listening) return;
+        
+        const jsonStr = btn.getAttribute('data-schedule-json');
+        const schedId = btn.getAttribute('data-schedule-id');
+        
+        if (jsonStr && schedId) {
+            try {
+                const scheduleData = JSON.parse(jsonStr);
+                window.scheduleCache[schedId] = scheduleData;
+                btn.addEventListener('click', () => viewSchedule(schedId));
+                btn.dataset.listening = "true";
+            } catch (e) {
+                console.error("Failed to parse schedule data", e);
+            }
+        }
+    });
 }
 
-// Remove thinking animation
-function removeThinkingAnimation(thinkingId) {
-    if (!thinkingId) return;
-    const thinkingEl = document.getElementById(thinkingId);
-    if (thinkingEl) {
-        thinkingEl.remove();
-    }
-}
-
-// View schedule modal with pagination
+// Make viewSchedule global
 window.viewSchedule = function(scheduleId) {
-    const list = document.getElementById('schedules-list');
-    if (!list) return;
     
-    list.innerHTML = '';
+    const list = document.getElementById('schedules-list');
+    
+    if (!list) {
+        createScheduleModal();
+        if (!document.getElementById('schedules-list')) {
+             console.error("Schedule modal list container not found!");
+             return;
+        }
+    }
+    
+    function createScheduleModal() {
+        if (document.getElementById('schedule-modal')) return;
+        const modalHtml = `
+            <div class="modal-overlay" id="schedule-modal">
+                <div class="modal-window" style="max-width:1200px; width:95%;">
+                    <div class="modal-title" style="justify-content:space-between;">
+                        <span>Schedule Viewer</span>
+                        <span style="cursor:pointer;" onclick="document.getElementById('schedule-modal').classList.remove('active')">&times;</span>
+                    </div>
+                    <div class="modal-body" style="max-height:80vh; overflow-y:auto;" id="schedules-list"></div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+    
+    // Ensure modal is active
+    const modal = document.getElementById('schedule-modal');
+    if (modal) modal.classList.add('active'); // Use new class toggle
+    
+    const containerList = document.getElementById('schedules-list');
+    containerList.innerHTML = '';
+
     const schedules = window.scheduleCache[scheduleId];
     if (!schedules) return;
     
@@ -594,10 +765,9 @@ window.viewSchedule = function(scheduleId) {
     function renderSchedule(index) {
         if (index < 0 || index >= schedules.length) return;
         
-        list.innerHTML = '';
+        containerList.innerHTML = '';
         const sched = schedules[index];
         
-        // Handle both old format (array) and new format (object with courses/benefits)
         const scheduleCourses = sched.courses || sched;
         const scheduleBenefits = sched.benefits || {};
         
@@ -714,16 +884,12 @@ window.viewSchedule = function(scheduleId) {
         html += `<div class="schedule-footer"><strong>Total Credits:</strong> ${totalCredits}</div>`;
         
         card.innerHTML = html;
-        list.appendChild(card);
+        containerList.appendChild(card);
     }
     
     // Initial render
     renderSchedule(0);
-    
-    // Store render function globally for navigation
     window.renderSchedule = renderSchedule;
-    
-    document.getElementById('schedule-modal').style.display = 'flex';
 };
 
 // Navigate between schedules
@@ -738,8 +904,11 @@ window.navigateSchedule = function(direction) {
     }
 };
 
-// GPA Calculator
-function addGpaRow() {
+// GPA Calculator Functions
+window.addGpaRow = function() {
+    const container = document.getElementById('semester-courses');
+    if (!container) return;
+    
     const div = document.createElement('div');
     div.className = 'course-input-row';
     div.innerHTML = `
@@ -755,12 +924,16 @@ function addGpaRow() {
             <option value="0.0">F</option>
         </select>
     `;
-    document.getElementById('semester-courses').appendChild(div);
+    container.appendChild(div);
 }
 
-function calculateGpa() {
-    const currentGpa = parseFloat(document.getElementById('current-gpa').value) || 0;
-    const completedCredits = parseFloat(document.getElementById('credits-completed').value) || 0;
+window.calculateGpa = function() {
+    const currentGpaEl = document.getElementById('current-gpa');
+    const creditsCompletedEl = document.getElementById('credits-completed');
+    if (!currentGpaEl || !creditsCompletedEl) return;
+
+    const currentGpa = parseFloat(currentGpaEl.value) || 0;
+    const completedCredits = parseFloat(creditsCompletedEl.value) || 0;
     
     let totalPoints = currentGpa * completedCredits;
     let totalCredits = completedCredits;

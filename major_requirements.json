@@ -48,14 +48,20 @@
     "Computational Genetics": {
       "school": "SAS",
       "requirements": [
+        "01:119",
         "01:694",
         "01:447",
-        "01:119",
-        "01:160",
-        "447:302"
+        "447:302",
+        "01:160"
       ],
       "structured_requirements": {
         "core_requirements": [
+          {
+            "code": "01:119",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
           {
             "code": "01:694",
             "name": "",
@@ -69,19 +75,13 @@
             "prerequisites": []
           },
           {
-            "code": "01:119",
+            "code": "447:302",
             "name": "",
             "credits": 3,
             "prerequisites": []
           },
           {
             "code": "01:160",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "447:302",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -108,37 +108,31 @@
     "Creative Writing": {
       "school": "SAS",
       "requirements": [
-        "04:547",
-        "351:314",
+        "01:355",
         "351:209",
-        "351:212",
-        "01:351",
+        "351:314",
         "14:440",
         "351:306",
+        "351:405",
         "11:374",
-        "01:355",
-        "04:189",
+        "351:309",
+        "351:220",
+        "351:212",
+        "01:351",
+        "351:308",
         "351:303",
         "351:211",
-        "351:304",
-        "01:198",
-        "351:305",
-        "351:406",
+        "04:189",
         "351:307",
-        "351:308",
-        "351:407",
-        "351:405"
+        "351:304",
+        "04:547",
+        "01:198",
+        "351:305"
       ],
       "structured_requirements": {
         "core_requirements": [
           {
-            "code": "04:547",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "351:314",
+            "code": "01:355",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -150,13 +144,7 @@
             "prerequisites": []
           },
           {
-            "code": "351:212",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "01:351",
+            "code": "351:314",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -174,19 +162,43 @@
             "prerequisites": []
           },
           {
+            "code": "351:405",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
             "code": "11:374",
             "name": "",
             "credits": 3,
             "prerequisites": []
           },
           {
-            "code": "01:355",
+            "code": "351:309",
             "name": "",
             "credits": 3,
             "prerequisites": []
           },
           {
-            "code": "04:189",
+            "code": "351:220",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "351:212",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "01:351",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "351:308",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -204,7 +216,25 @@
             "prerequisites": []
           },
           {
+            "code": "04:189",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "351:307",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
             "code": "351:304",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "04:547",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -217,36 +247,6 @@
           },
           {
             "code": "351:305",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "351:406",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "351:307",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "351:308",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "351:407",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "351:405",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -273,43 +273,37 @@
     "Economic Theory": {
       "school": "SAS",
       "requirements": [
-        "640:250",
-        "220:424",
-        "220:481",
+        "220:402",
+        "640:152",
         "220:460",
-        "220:420",
-        "220:413",
-        "960:382",
-        "220:411",
-        "220:441",
-        "220:438",
-        "640:481",
-        "220:485",
-        "220:482",
-        "220:495",
-        "220:435",
         "220:422",
-        "01:640",
         "220:300",
-        "640:252",
-        "640:251"
+        "220:413",
+        "220:463",
+        "220:482",
+        "220:480",
+        "220:495",
+        "220:441",
+        "220:433",
+        "640:311",
+        "11:373",
+        "220:439",
+        "220:477",
+        "960:381",
+        "220:420",
+        "220:485",
+        "220:410"
       ],
       "structured_requirements": {
         "core_requirements": [
           {
-            "code": "640:250",
+            "code": "220:402",
             "name": "",
             "credits": 3,
             "prerequisites": []
           },
           {
-            "code": "220:424",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "220:481",
+            "code": "640:152",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -321,49 +315,7 @@
             "prerequisites": []
           },
           {
-            "code": "220:420",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "220:413",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "960:382",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "220:411",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "220:441",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "220:438",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "640:481",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "220:435",
+            "code": "220:410",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -375,7 +327,19 @@
             "prerequisites": []
           },
           {
-            "code": "220:495",
+            "code": "220:300",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "220:413",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "220:463",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -387,31 +351,67 @@
             "prerequisites": []
           },
           {
+            "code": "220:480",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "220:495",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "220:441",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "220:433",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "640:311",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "11:373",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "220:439",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "220:477",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "960:381",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "220:420",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
             "code": "220:485",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "01:640",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "220:300",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "640:251",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "640:252",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -438,18 +438,36 @@
     "Evolutionary Medicine": {
       "school": "SAS",
       "requirements": [
+        "01:190",
         "11:216",
+        "01:940",
+        "11:680",
         "01:447",
         "01:615",
-        "01:190",
-        "11:680",
-        "01:940",
         "01:070"
       ],
       "structured_requirements": {
         "core_requirements": [
           {
+            "code": "01:190",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
             "code": "11:216",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "01:940",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "11:680",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -462,24 +480,6 @@
           },
           {
             "code": "01:615",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "01:190",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "11:680",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "01:940",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -522,25 +522,13 @@
     "Genetic Counseling": {
       "school": "SAS",
       "requirements": [
-        "01:694",
-        "01:119",
         "01:447",
-        "447:302"
+        "447:302",
+        "01:119",
+        "01:694"
       ],
       "structured_requirements": {
         "core_requirements": [
-          {
-            "code": "447:302",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "01:694",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
           {
             "code": "01:447",
             "name": "",
@@ -548,7 +536,19 @@
             "prerequisites": []
           },
           {
+            "code": "447:302",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
             "code": "01:119",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "01:694",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -610,22 +610,22 @@
     "Historic Preservation": {
       "school": "SAS",
       "requirements": [
-        "07:081",
-        "10:762",
-        "10:082",
         "01:078",
-        "34:970"
+        "07:081",
+        "10:082",
+        "34:970",
+        "10:762"
       ],
       "structured_requirements": {
         "core_requirements": [
           {
-            "code": "07:081",
+            "code": "01:078",
             "name": "",
             "credits": 3,
             "prerequisites": []
           },
           {
-            "code": "10:762",
+            "code": "07:081",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -637,13 +637,13 @@
             "prerequisites": []
           },
           {
-            "code": "01:078",
+            "code": "34:970",
             "name": "",
             "credits": 3,
             "prerequisites": []
           },
           {
-            "code": "34:970",
+            "code": "10:762",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -715,52 +715,22 @@
     "Public History": {
       "school": "SAS",
       "requirements": [
-        "01:840",
         "01:508",
-        "01:988",
-        "01:506",
-        "01:685",
-        "01:563",
         "01:190",
-        "01:013",
-        "01:016",
+        "01:506",
         "01:925",
-        "01:014"
+        "01:685",
+        "01:014",
+        "01:563",
+        "01:013",
+        "01:988",
+        "01:016",
+        "01:840"
       ],
       "structured_requirements": {
         "core_requirements": [
           {
-            "code": "01:925",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
             "code": "01:508",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "01:988",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "01:506",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "01:685",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "01:563",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -772,7 +742,43 @@
             "prerequisites": []
           },
           {
+            "code": "01:506",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "01:925",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "01:685",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "01:014",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "01:563",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
             "code": "01:013",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "01:988",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -785,12 +791,6 @@
           },
           {
             "code": "01:840",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "01:014",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -829,13 +829,13 @@
       "structured_requirements": {
         "core_requirements": [
           {
-            "code": "01:960",
+            "code": "01:220",
             "name": "",
             "credits": 3,
             "prerequisites": []
           },
           {
-            "code": "01:220",
+            "code": "01:960",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -868,22 +868,16 @@
     "Quantitative Political Science Methods": {
       "school": "SAS",
       "requirements": [
-        "01:640",
-        "01:920",
-        "01:790",
         "01:220",
-        "01:830"
+        "01:790",
+        "01:640",
+        "01:830",
+        "01:920"
       ],
       "structured_requirements": {
         "core_requirements": [
           {
-            "code": "01:640",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "01:920",
+            "code": "01:220",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -895,13 +889,19 @@
             "prerequisites": []
           },
           {
-            "code": "01:220",
+            "code": "01:640",
             "name": "",
             "credits": 3,
             "prerequisites": []
           },
           {
             "code": "01:830",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "01:920",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -943,67 +943,31 @@
     "Technical Writing": {
       "school": "SAS",
       "requirements": [
-        "04:547",
-        "358:202",
-        "358:335",
-        "01:351",
-        "359:498",
-        "358:240",
+        "01:355",
         "358:357",
-        "14:440",
         "358:310",
+        "14:440",
+        "359:496",
         "11:374",
-        "358:426",
         "358:347",
         "358:313",
-        "358:325",
-        "01:355",
-        "358:314",
-        "351:408",
-        "359:499",
+        "358:202",
+        "01:351",
+        "351:308",
+        "351:303",
+        "358:394",
+        "358:240",
+        "358:335",
         "04:189",
-        "358:356"
+        "358:325",
+        "351:304",
+        "359:220",
+        "04:547"
       ],
       "structured_requirements": {
         "core_requirements": [
           {
-            "code": "04:547",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "358:202",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "358:335",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "358:356",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "01:351",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "359:498",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "358:240",
+            "code": "01:355",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -1015,13 +979,19 @@
             "prerequisites": []
           },
           {
+            "code": "358:310",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
             "code": "14:440",
             "name": "",
             "credits": 3,
             "prerequisites": []
           },
           {
-            "code": "358:310",
+            "code": "359:496",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -1033,7 +1003,7 @@
             "prerequisites": []
           },
           {
-            "code": "358:426",
+            "code": "358:313",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -1045,7 +1015,49 @@
             "prerequisites": []
           },
           {
-            "code": "358:313",
+            "code": "358:202",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "01:351",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "351:308",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "351:303",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "358:394",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "358:240",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "358:335",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "04:189",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -1057,31 +1069,19 @@
             "prerequisites": []
           },
           {
-            "code": "01:355",
+            "code": "351:304",
             "name": "",
             "credits": 3,
             "prerequisites": []
           },
           {
-            "code": "358:314",
+            "code": "359:220",
             "name": "",
             "credits": 3,
             "prerequisites": []
           },
           {
-            "code": "351:408",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "359:499",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "04:189",
+            "code": "04:547",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -1165,37 +1165,31 @@
     "English": {
       "school": "SAS",
       "requirements": [
-        "04:547",
-        "351:314",
+        "01:355",
         "351:209",
-        "351:212",
-        "01:351",
+        "351:314",
         "14:440",
         "351:306",
+        "351:405",
         "11:374",
-        "01:355",
-        "04:189",
+        "351:309",
+        "351:220",
+        "351:212",
+        "01:351",
+        "351:308",
         "351:303",
         "351:211",
-        "351:304",
-        "01:198",
-        "351:305",
-        "351:406",
+        "04:189",
         "351:307",
-        "351:308",
-        "351:407",
-        "351:405"
+        "351:304",
+        "04:547",
+        "01:198",
+        "351:305"
       ],
       "structured_requirements": {
         "core_requirements": [
           {
-            "code": "04:547",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "351:314",
+            "code": "01:355",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -1207,13 +1201,7 @@
             "prerequisites": []
           },
           {
-            "code": "351:212",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "01:351",
+            "code": "351:314",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -1231,19 +1219,43 @@
             "prerequisites": []
           },
           {
+            "code": "351:405",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
             "code": "11:374",
             "name": "",
             "credits": 3,
             "prerequisites": []
           },
           {
-            "code": "01:355",
+            "code": "351:309",
             "name": "",
             "credits": 3,
             "prerequisites": []
           },
           {
-            "code": "04:189",
+            "code": "351:220",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "351:212",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "01:351",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "351:308",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -1261,7 +1273,25 @@
             "prerequisites": []
           },
           {
+            "code": "04:189",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "351:307",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
             "code": "351:304",
+            "name": "",
+            "credits": 3,
+            "prerequisites": []
+          },
+          {
+            "code": "04:547",
             "name": "",
             "credits": 3,
             "prerequisites": []
@@ -1274,36 +1304,6 @@
           },
           {
             "code": "351:305",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "351:406",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "351:307",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "351:308",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "351:407",
-            "name": "",
-            "credits": 3,
-            "prerequisites": []
-          },
-          {
-            "code": "351:405",
             "name": "",
             "credits": 3,
             "prerequisites": []

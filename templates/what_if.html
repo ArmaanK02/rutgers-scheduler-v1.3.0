@@ -1,82 +1,103 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <title>What-If Analysis - Scarlet Scheduler</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What-If Analysis | Scarlet Scheduler</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="app-body">
-    
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <h3><i class="fas fa-calendar-alt"></i> Scarlet Scheduler</h3>
-        </div>
-        
-        <div class="nav-links" style="margin-top: 20px;">
-            <a href="{{ url_for('chat_interface') }}" class="nav-item"><i class="fas fa-comments"></i> Chat</a>
-            <a href="{{ url_for('history_dashboard') }}" class="nav-item"><i class="fas fa-history"></i> Course History</a>
-            <a href="{{ url_for('progress_dashboard') }}" class="nav-item"><i class="fas fa-chart-line"></i> Major Progress</a>
-            <a href="{{ url_for('what_if_dashboard') }}" class="nav-item active"><i class="fas fa-random"></i> What-If?</a>
-            <a href="{{ url_for('degree_map_dashboard') }}" class="nav-item"><i class="fas fa-project-diagram"></i> Degree Map</a>
-        </div>
-        
-        <div class="user-profile" style="margin-top: auto;">
-            <div class="user-info">
-                <div class="avatar">{{ user.username[0].upper() }}</div>
-                <span>{{ user.username }}</span>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand-header">
+                <i class="fa-solid fa-brain brand-logo"></i>
+                <span class="brand-text">Scarlet Scheduler</span>
             </div>
-            <a href="{{ url_for('logout') }}" class="btn-logout"><i class="fas fa-sign-out-alt"></i></a>
-        </div>
-    </aside>
-
-    <main class="main-content">
-        <div class="content-header">
-            <h2>What-If Analysis</h2>
-        </div>
-
-        <div class="data-card">
-            <h3>Explore a New Major</h3>
-            <p style="color: #aaa; margin-bottom: 20px;">See how your current credits apply to a different major.</p>
             
-            <div class="progress-controls">
-                <select id="what-if-major" class="dropdown-lg">
-                    <option value="">-- Select Target Major --</option>
-                    {% for major in majors %}
-                        <option value="{{ major }}">{{ major }}</option>
-                    {% endfor %}
-                </select>
-                <button onclick="runWhatIf()" class="btn btn-primary">Analyze</button>
-            </div>
-        </div>
+            <nav class="nav-menu">
+                <a href="/chat" class="nav-item">
+                    <i class="fa-regular fa-comments"></i> Advisor Chat
+                </a>
+                <a href="/history" class="nav-item">
+                    <i class="fa-solid fa-clock-rotate-left"></i> History
+                </a>
+                <a href="/progress" class="nav-item">
+                    <i class="fa-solid fa-chart-line"></i> Degree Progress
+                </a>
+                <a href="#" class="nav-item active">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> What-If?
+                </a>
+            </nav>
 
-        <div id="what-if-results" style="display: none; margin-top: 20px;">
-            <div class="data-card">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3>Compatibility Score</h3>
-                    <h2 id="match-score" style="color: var(--accent-red);">0%</h2>
+            <div class="sidebar-footer">
+                <div class="theme-toggle" id="theme-toggle">
+                    <i class="fa-solid fa-moon"></i>
+                    <span style="font-size:0.8rem; color:var(--text-muted)">Dark Mode</span>
+                    <i class="fa-solid fa-toggle-on" style="color:var(--accent-primary)"></i>
                 </div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar-fill" id="match-bar" style="width: 0%"></div>
+                
+                {% if current_user.is_authenticated %}
+                <div class="user-mini-profile">
+                    <div class="avatar-circle">{{ current_user.username[0].upper() }}</div>
+                    <div style="flex:1; overflow:hidden;">
+                        <div style="font-weight:600; font-size:0.9rem;">{{ current_user.username }}</div>
+                    </div>
+                    <a href="/logout" title="Logout" style="color:var(--text-muted)"><i class="fa-solid fa-right-from-bracket"></i></a>
+                </div>
+                {% endif %}
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="main-workspace">
+            <div class="dashboard-content">
+                <header class="page-header">
+                    <div class="page-title">
+                        <h2>Scenario Simulator</h2>
+                        <div class="page-subtitle">Simulate major changes and see course applicability.</div>
+                    </div>
+                </header>
+
+                <div class="clean-card">
+                    <h3 style="margin-bottom:10px;">Target Major</h3>
+                    <div style="display:flex; gap:10px;">
+                        <div class="input-container" style="flex:1; padding:5px 15px; border-radius:12px;">
+                            <select id="what-if-major" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-main); outline:none;">
+                                <option value="">Select a Major...</option>
+                                {% for major in majors %}
+                                    <option value="{{ major }}">{{ major }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button class="btn-primary" onclick="runWhatIf()" style="width:auto;">Simulate</button>
+                    </div>
+                </div>
+
+                <div id="what-if-results" style="display: none;">
+                    <div class="clean-card" style="text-align:center;">
+                        <div style="font-size:3rem; font-weight:800; color:var(--accent-primary);" id="match-score">0%</div>
+                        <div style="color:var(--text-muted);">Compatibility Score</div>
+                        <div style="height:6px; background:var(--bg-input); border-radius:3px; margin-top:15px; overflow:hidden;">
+                            <div id="match-bar" style="height:100%; background:var(--accent-primary); width:0%; transition:width 1s ease;"></div>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                        <div class="clean-card">
+                            <h4 style="color:#4caf50; margin-bottom:15px;"><i class="fa-solid fa-check-circle"></i> Transferable</h4>
+                            <ul class="req-list" id="transfer-list"></ul>
+                        </div>
+                        <div class="clean-card">
+                            <h4 style="color:#ff9800; margin-bottom:15px;"><i class="fa-solid fa-circle-exclamation"></i> Requirements Needed</h4>
+                            <ul class="req-list" id="gap-list"></ul>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <div class="progress-grid">
-                <div class="data-card">
-                    <h4><i class="fas fa-check-double text-success"></i> Transferable Courses</h4>
-                    <p style="font-size: 0.9rem; color: #aaa; margin-bottom: 10px;">These courses count towards the new major.</p>
-                    <ul class="req-list" id="transfer-list"></ul>
-                </div>
-                <div class="data-card">
-                    <h4><i class="fas fa-list text-secondary"></i> New Requirements</h4>
-                    <p style="font-size: 0.9rem; color: #aaa; margin-bottom: 10px;">Courses you would need to take.</p>
-                    <ul class="req-list" id="gap-list"></ul>
-                </div>
-            </div>
-        </div>
-    </main>
-
+        </main>
+    </div>
     <script src="{{ url_for('static', filename='app.js') }}"></script>
     <script>
         async function runWhatIf() {

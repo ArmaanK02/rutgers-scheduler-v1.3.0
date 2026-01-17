@@ -1,34 +1,107 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scarlet Scheduler AI</title>
-    <!-- Link to the CSS file in static folder -->
+    <title>Scarlet Scheduler | Intelligent Advising</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Add FontAwesome for Icons (Paper plane, User icon, etc.) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <div class="chat-container">
-        <header class="chat-header">
-            <h1><i class="fa-solid fa-graduation-cap"></i> Scarlet Scheduler</h1>
-            <p>Ask for courses naturally (e.g., "Schedule CS 111 and Math 151")</p>
-        </header>
-
-        <div id="chat-box" class="chat-box">
-            <div class="message bot-message">
-                Hello! I am your AI scheduler. Tell me which courses you need, like "198:111", or just say "Find me computer science courses".
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand-header">
+                <i class="fa-solid fa-brain brand-logo"></i>
+                <span class="brand-text">Scarlet Scheduler</span>
             </div>
-        </div>
+            
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" title="AI Advisor Chat">
+                    <i class="fa-regular fa-comments"></i> Advisor Chat
+                </a>
+                <a href="/history" class="nav-item" title="Course History">
+                    <i class="fa-solid fa-clock-rotate-left"></i> History
+                </a>
+                <a href="/degree-map" class="nav-item" title="Degree Progress">
+                    <i class="fa-solid fa-route"></i> Degree Map
+                </a>
+                <a href="/what-if" class="nav-item" title="Simulate Scenarios">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> What-If?
+                </a>
+            </nav>
 
-        <div class="input-area">
-            <input type="text" id="user-input" placeholder="Type your request here..." autocomplete="off">
-            <button id="send-btn" title="Send"><i class="fa-solid fa-paper-plane"></i></button>
+            <div class="sidebar-footer">
+                <div class="theme-toggle" id="theme-toggle">
+                    <i class="fa-solid fa-moon"></i>
+                    <span style="font-size:0.8rem; color:var(--text-muted)">Dark Mode</span>
+                    <i class="fa-solid fa-toggle-on" style="color:var(--accent-primary)"></i>
+                </div>
+                
+                {% if current_user.is_authenticated %}
+                <div class="user-mini-profile">
+                    <div class="avatar-circle">{{ current_user.username[0].upper() }}</div>
+                    <div style="flex:1; overflow:hidden;">
+                        <div style="font-weight:600; font-size:0.9rem;">{{ current_user.username }}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Student</div>
+                    </div>
+                    <a href="/logout" title="Logout" style="color:var(--text-muted)"><i class="fa-solid fa-right-from-bracket"></i></a>
+                </div>
+                {% endif %}
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="main-workspace">
+            <div class="chat-interface">
+                <div class="chat-history" id="chat-container">
+                    <!-- AI Welcome Message -->
+                    <div class="message ai">
+                        <div class="msg-avatar"><i class="fa-solid fa-robot" style="color:var(--accent-primary)"></i></div>
+                        <div class="msg-content">
+                            <p><strong>Hello! I'm your Intelligent Academic Advisor.</strong></p>
+                            <p style="margin-top:8px; color:var(--text-muted);">I can help you build the perfect schedule, check prerequisites, or simulate "What-If" scenarios. Try asking:</p>
+                            <ul style="margin-top:8px; margin-left:20px; font-size:0.9rem; color:var(--text-muted);">
+                                <li>"Build a schedule with no classes on Fridays."</li>
+                                <li>"What happens if I double major in Econ?"</li>
+                                <li>"Find me easy AH electives."</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-zone">
+                    <form id="chat-form" class="input-container">
+                        <input type="hidden" id="current-chat-id" value="">
+                        <input type="text" id="user-input" class="chat-input" placeholder="Type your request here..." autocomplete="off">
+                        <button type="submit" class="send-btn">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Terms of Service Modal (Safe Harbor) -->
+    <div class="modal-overlay" id="tos-modal">
+        <div class="modal-window">
+            <div class="modal-title">
+                <i class="fa-solid fa-shield-halved" style="color:var(--accent-primary)"></i> Unofficial Tool
+            </div>
+            <div class="modal-body">
+                <p>Scarlet Scheduler is an intelligent student project, not an official Rutgers University tool.</p>
+                <ul style="margin-bottom:20px; padding-left:20px; color:var(--text-muted);">
+                    <li><strong>Verify:</strong> Always check WebReg/Degree Navigator.</li>
+                    <li><strong>Privacy:</strong> Conversations are processed by AI. Do not share passwords or SSNs.</li>
+                    <li><strong>Liability:</strong> We are not responsible for registration errors.</li>
+                </ul>
+                <button class="btn-primary" id="accept-tos-btn">I Understand & Agree</button>
+            </div>
         </div>
     </div>
 
-    <!-- Link to the JS file in static folder -->
+    <!-- Scripts -->
     <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

@@ -15,13 +15,24 @@ import requests
 import time
 from typing import Dict, List, Optional, Any
 
-# Gemini API Configuration
-GEMINI_API_KEY = "AIzaSyBuiHjB2k4F3bUcgMqvo5f2yFnE6pBfYjg"
+# Try to load environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+# SECURITY UPDATE: Load from environment, do not hardcode
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 GEMINI_MODELS = [
     "gemini-1.5-flash",
     "gemini-1.5-pro",
     "gemini-pro",
 ]
+
+if not GEMINI_API_KEY:
+    print("⚠️ WARNING: GEMINI_API_KEY not found in environment variables.")
+    print("   AI parsing features will fail. Please set it in .env")
 
 def check_dependencies():
     """Check if required dependencies are installed."""
@@ -35,6 +46,10 @@ def check_dependencies():
 
 def call_gemini_api(prompt: str, system_instruction: str = None, max_retries: int = 3) -> Optional[str]:
     """Call Gemini API with the provided prompt."""
+    if not GEMINI_API_KEY:
+        print("   Skipping AI call: No API Key")
+        return None
+
     for model in GEMINI_MODELS:
         for attempt in range(max_retries):
             try:
@@ -409,4 +424,3 @@ if __name__ == "__main__":
         print("\nOptions:")
         print("  --no-ai    Use basic extraction instead of AI parsing")
         print("  --limit N  Process only first N programs (for testing)")
-

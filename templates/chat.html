@@ -1,133 +1,188 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat - Scarlet Scheduler</title>
+    <title>Scarlet Scheduler | Intelligent Advising</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="app-body">
-    
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <h3><i class="fas fa-calendar-alt"></i> Scarlet Scheduler</h3>
-        </div>
-        
-        <button id="new-chat-btn" class="btn btn-new-chat">
-            <i class="fas fa-plus"></i> New Chat
-        </button>
-        
-        <div class="nav-links">
-            <a href="{{ url_for('chat_interface') }}" class="nav-item active"><i class="fas fa-comments"></i> Chat</a>
-            <a href="{{ url_for('history_dashboard') }}" class="nav-item"><i class="fas fa-history"></i> Course History</a>
-            <a href="{{ url_for('progress_dashboard') }}" class="nav-item"><i class="fas fa-chart-line"></i> Major Progress</a>
-            <a href="{{ url_for('what_if_dashboard') }}" class="nav-item"><i class="fas fa-random"></i> What-If?</a>
-            <a href="{{ url_for('degree_map_dashboard') }}" class="nav-item"><i class="fas fa-project-diagram"></i> Degree Map</a>
-        </div>
-        
-        <div class="chat-history-list">
-            <div class="history-label">Recent Chats</div>
-            {% for chat in chats %}
-                <div class="history-item-wrapper {% if active_chat and chat.id == active_chat.id %}active{% endif %}">
-                    <a href="{{ url_for('chat_interface', id=chat.id) }}" class="history-item">
-                        <i class="fas fa-message"></i> {{ chat.title }}
-                    </a>
-                    <button class="delete-chat-btn" data-chat-id="{{ chat.id }}" title="Delete Chat">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </div>
-            {% endfor %}
-        </div>
-        
-        <div class="user-profile">
-            <div class="user-info">
-                <div class="avatar">{{ user.username[0].upper() }}</div>
-                <span>{{ user.username }}</span>
-            </div>
-            <a href="{{ url_for('logout') }}" class="btn-logout" title="Logout"><i class="fas fa-sign-out-alt"></i></a>
-        </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="main-chat-area">
-        {% if active_chat %}
-            <div class="chat-header">
-                <h2>{{ active_chat.title }}</h2>
-                <button class="btn btn-outline btn-sm" onclick="document.getElementById('import-modal').style.display='flex'">
-                    <i class="fas fa-file-import"></i> Quick Import
-                </button>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand-header">
+                <i class="fa-solid fa-brain brand-logo"></i>
+                <span class="brand-text">Scarlet Scheduler</span>
             </div>
             
-            <div class="chat-container" id="chat-container">
-                <!-- Messages will be rendered here -->
-                {% for msg in active_chat.messages %}
-                    <div class="message {{ 'message-user' if msg.role == 'user' else 'message-ai' }}">
-                        <div class="message-content">
-                            {{ msg.content }}
-                            
-                            {% if msg.meta_data %}
-                                <div class="schedule-preview">
-                                    <button class="btn btn-sm btn-outline view-schedule-btn" 
-                                            style="margin-top:10px" 
-                                            data-schedule-id="sched_{{ msg.id }}"
-                                            data-schedule-json="{{ msg.meta_data }}">
-                                        View Generated Schedules
-                                    </button>
-                                </div>
-                            {% endif %}
+            <!-- Main Navigation (Moved to Top) -->
+            <nav class="nav-menu" style="margin-bottom: 20px;">
+                <a href="/chat" class="nav-item active" title="AI Advisor Chat">
+                    <i class="fa-regular fa-comments"></i> Advisor Chat
+                </a>
+                <a href="/history" class="nav-item" title="Course History">
+                    <i class="fa-solid fa-clock-rotate-left"></i> History
+                </a>
+                <a href="/progress" class="nav-item" title="Degree Progress">
+                    <i class="fa-solid fa-chart-line"></i> Degree Progress
+                </a>
+                <a href="/what-if" class="nav-item" title="Simulate Scenarios">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> What-If?
+                </a>
+            </nav>
+
+            <!-- New Chat Button -->
+            <button id="new-chat-btn" class="btn-primary" style="width: 100%; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i class="fa-solid fa-plus"></i> New Chat
+            </button>
+            
+            <!-- Chat History List (Modernized) -->
+            <div class="chat-history-section">
+                <div class="history-label">Recent Conversations</div>
+                <div class="chat-history-list">
+                    {% for chat in chats %}
+                        <div class="history-item-wrapper {{ 'active' if active_chat and active_chat.id == chat.id else '' }}">
+                            <a href="/chat?id={{ chat.id }}" class="history-item-link">
+                                <i class="fa-regular fa-message"></i>
+                                <span class="history-title">{{ chat.title or 'New Chat' }}</span>
+                            </a>
+                            <button class="delete-chat-btn" data-chat-id="{{ chat.id }}" title="Delete">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
                         </div>
-                        <div class="message-time">{{ msg.timestamp.strftime('%H:%M') }}</div>
-                    </div>
-                {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="theme-toggle" id="theme-toggle">
+                    <i class="fa-solid fa-moon"></i>
+                    <span style="font-size:0.8rem; color:var(--text-muted)">Dark Mode</span>
+                    <i class="fa-solid fa-toggle-on" style="color:var(--accent-primary)"></i>
+                </div>
                 
-                {% if not active_chat.messages %}
-                    <div class="empty-state">
-                        <i class="fas fa-robot fa-3x"></i>
-                        <h3>How can I help you today?</h3>
-                        <p>Try asking: "Schedule CS 111 and Calc 1"</p>
+                {% if current_user.is_authenticated %}
+                <div class="user-mini-profile">
+                    <div class="avatar-circle">{{ current_user.username[0].upper() }}</div>
+                    <div style="flex:1; overflow:hidden;">
+                        <div style="font-weight:600; font-size:0.9rem;">{{ current_user.username }}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Student</div>
                     </div>
+                    <a href="/logout" title="Logout" style="color:var(--text-muted)"><i class="fa-solid fa-right-from-bracket"></i></a>
+                </div>
                 {% endif %}
             </div>
+        </aside>
 
-            <div class="input-area">
-                <form id="chat-form">
-                    <input type="hidden" id="current-chat-id" value="{{ active_chat.id }}">
-                    <div class="input-wrapper">
-                        <input type="text" id="user-input" placeholder="Type your request here..." autocomplete="off">
-                        <button type="submit" class="btn-send"><i class="fas fa-paper-plane"></i></button>
-                    </div>
-                </form>
-            </div>
-        {% else %}
-            <div class="no-chat-selected">
-                <h2>Welcome to Scarlet Scheduler</h2>
-                <button onclick="createNewChat()" class="btn btn-primary">Start a New Chat</button>
-            </div>
-        {% endif %}
-    </main>
+        <!-- Main Workspace -->
+        <main class="main-workspace">
+            <div class="chat-interface">
+                <!-- Chat History Area -->
+                <div class="chat-history" id="chat-container">
+                    {% if active_chat and active_chat.messages %}
+                        {% for msg in active_chat.messages %}
+                            <div class="message {{ 'user' if msg.role == 'user' else 'ai' }}">
+                                <div class="msg-avatar">
+                                    {% if msg.role == 'user' %}
+                                        <i class="fa-solid fa-user"></i>
+                                    {% else %}
+                                        <i class="fa-solid fa-robot" style="color:var(--accent-primary)"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="msg-content">
+                                    {{ msg.content }}
+                                    {% if msg.role == 'ai' and msg.meta_data %}
+                                        <div class="schedule-preview-placeholder" data-schedule-json='{{ msg.meta_data | safe }}'></div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="message ai">
+                            <div class="msg-avatar"><i class="fa-solid fa-robot" style="color:var(--accent-primary)"></i></div>
+                            <div class="msg-content">
+                                <p><strong>Hello! I'm your Intelligent Academic Advisor.</strong></p>
+                                <p style="margin-top:8px; color:var(--text-muted);">I can help you build the perfect schedule, check prerequisites, or simulate "What-If" scenarios. Try asking:</p>
+                                <ul style="margin-top:8px; margin-left:20px; font-size:0.9rem; color:var(--text-muted);">
+                                    <li>"Build a schedule with no classes on Fridays."</li>
+                                    <li>"What happens if I double major in Econ?"</li>
+                                    <li>"Find me easy AH electives."</li>
+                                </ul>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
 
-    <!-- Import Modal -->
-    <div id="import-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="document.getElementById('import-modal').style.display='none'">&times;</span>
-            <h3>Import Course History</h3>
-            <p>Paste your history from Degree Navigator (Ctrl+A, Ctrl+C).</p>
-            <textarea id="history-text" rows="5" placeholder="Course list..."></textarea>
-            <button onclick="uploadHistory()" class="btn btn-primary">Import</button>
-        </div>
+                <!-- Input Area -->
+                <div class="input-zone">
+                    <form id="chat-form" class="input-container">
+                        <input type="hidden" id="current-chat-id" value="{{ active_chat.id if active_chat else '' }}">
+                        <input type="text" id="user-input" class="chat-input" placeholder="Type your request here..." autocomplete="off">
+                        <button type="submit" class="send-btn">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </main>
     </div>
 
-    <!-- Schedules Modal -->
-    <div id="schedule-modal" class="modal">
-        <div class="modal-content large">
-            <span class="close" onclick="document.getElementById('schedule-modal').style.display='none'">&times;</span>
-            <h3>Generated Schedules</h3>
-            <div id="schedules-list" class="schedules-grid"></div>
+    <!-- Terms of Service Modal (Safe Harbor) -->
+    <div class="modal-overlay" id="tos-modal">
+        <div class="modal-window">
+            <div class="modal-title">
+                <i class="fa-solid fa-shield-halved" style="color:var(--accent-primary)"></i> Unofficial Tool
+            </div>
+            <div class="modal-body">
+                <p>Scarlet Scheduler is an intelligent student project, not an official Rutgers University tool.</p>
+                <ul style="margin-bottom:20px; padding-left:20px; color:var(--text-muted);">
+                    <li><strong>Verify:</strong> Always check WebReg/Degree Navigator.</li>
+                    <li><strong>Privacy:</strong> Conversations are processed by AI. Do not share passwords or SSNs.</li>
+                    <li><strong>Liability:</strong> We are not responsible for registration errors.</li>
+                </ul>
+                <button class="btn-primary" id="accept-tos-btn">I Understand & Agree</button>
+            </div>
         </div>
     </div>
 
     <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Render schedules for loaded messages
+            document.querySelectorAll('.schedule-preview-placeholder').forEach(el => {
+                const jsonStr = el.getAttribute('data-schedule-json');
+                if (jsonStr) {
+                    try {
+                        const schedules = JSON.parse(jsonStr);
+                        if (schedules && schedules.length > 0) {
+                            const schedId = 'sched_' + Date.now() + Math.random().toString(36).substr(2, 9);
+                            window.scheduleCache = window.scheduleCache || {};
+                            window.scheduleCache[schedId] = schedules;
+                            
+                            el.innerHTML = `
+                                <div class="schedule-preview-card">
+                                    <div class="schedule-header-row">
+                                        <span style="font-weight:600; color:var(--accent-primary)">
+                                            <i class="fa-solid fa-layer-group"></i> ${schedules.length} Options Found
+                                        </span>
+                                        <span class="badge-benefit">AI Optimized</span>
+                                    </div>
+                                    <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
+                                        I've analyzed constraints and found ${schedules.length} conflict-free paths.
+                                    </div>
+                                    <button class="btn-action" onclick="viewSchedule('${schedId}')" style="width:100%">
+                                        <i class="fa-regular fa-eye"></i> View & Compare Schedules
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse schedule JSON", e);
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>

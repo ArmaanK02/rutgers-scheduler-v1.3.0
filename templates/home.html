@@ -1,37 +1,69 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scarlet Scheduler</title>
+    <title>Scarlet Scheduler | Optimize Your Academic Life</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .landing-nav {
+            padding: 20px 40px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .landing-logo { font-weight: 700; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+        .feature-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px;
+            max-width: 1200px; margin: 0 auto; padding: 40px 20px;
+        }
+        .feature-box {
+            background: var(--bg-panel); border: 1px solid var(--border-light);
+            padding: 30px; border-radius: 20px;
+            transition: var(--transition);
+        }
+        .feature-box:hover { transform: translateY(-10px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); border-color: var(--accent-primary); }
+        .icon-box {
+            width: 50px; height: 50px; background: rgba(255,45,85,0.1); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; color: var(--accent-primary);
+            font-size: 1.5rem; margin-bottom: 20px;
+        }
+    </style>
 </head>
-<body class="landing-body">
-    <div class="landing-container">
-        <div class="hero-section">
-            <h1 class="glitch-title">Scarlet Scheduler <span class="version">v2.0</span></h1>
-            <p class="hero-subtitle">The intelligent, AI-powered academic advisor for Rutgers students.</p>
-            
-            <div class="cta-buttons">
-                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">Login</a>
-                <a href="{{ url_for('register') }}" class="btn btn-outline btn-lg">Create Account</a>
-            </div>
+<body>
+    <nav class="landing-nav">
+        <div class="landing-logo">
+            <i class="fa-solid fa-brain" style="color:var(--accent-primary)"></i> Scarlet Scheduler
         </div>
-        
-        <div class="features-grid">
-            <div class="feature-card">
-                <h3>💬 Natural Language</h3>
-                <p>Just type "I need a schedule with no classes on Fridays" and watch the magic happen.</p>
-            </div>
-            <div class="feature-card">
-                <h3>⚡ Conflict Free</h3>
-                <p>Our algorithms validate thousands of combinations to ensure zero time conflicts.</p>
-            </div>
-            <div class="feature-card">
-                <h3>🌙 Dark Mode</h3>
-                <p>Easy on the eyes for those late-night registration planning sessions.</p>
-            </div>
+        <div>
+            <a href="/login" style="color:var(--text-muted); text-decoration:none; margin-right:20px; font-weight:600;">Log In</a>
+            <a href="/register" class="btn-action" style="background:var(--accent-primary); color:white; border:none;">Get Started</a>
+        </div>
+    </nav>
+
+    <section class="landing-hero">
+        <h1 class="hero-title">Don't Just Schedule.<br>Optimize.</h1>
+        <p class="hero-subtitle">The intelligent academic advisor that simulates your future, optimizes your commute, and builds the perfect semester.</p>
+        <div style="display:flex; gap:15px; justify-content:center;">
+            <a href="/register" class="btn-primary" style="width:auto; padding: 15px 40px; font-size:1.1rem;">Launch Advisor</a>
+            <a href="/chat?demo=true" class="btn-action" style="padding: 15px 40px; font-size:1.1rem;">See Demo</a>
+        </div>
+    </section>
+
+    <div class="feature-grid">
+        <div class="feature-box">
+            <div class="icon-box"><i class="fa-solid fa-comments"></i></div>
+            <h3>Natural Language</h3>
+            <p style="color:var(--text-muted)">Just say "I need no classes on Friday" and let our AI handle the complex permutations.</p>
+        </div>
+        <div class="feature-box">
+            <div class="icon-box"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+            <h3>"What-If" Engine</h3>
+            <p style="color:var(--text-muted)">Simulate major changes, dropped classes, or summer sessions to see how they impact your graduation date.</p>
+        </div>
+        <div class="feature-box">
+            <div class="icon-box"><i class="fa-solid fa-bolt"></i></div>
+            <h3>Superior Sync</h3>
+            <p style="color:var(--text-muted)">Instant conflict detection and optimization logic that goes beyond simple calendar placement.</p>
         </div>
     </div>
 </body>

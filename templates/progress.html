@@ -1,118 +1,103 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <title>Degree Progress - Scarlet Scheduler</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Degree Progress | Scarlet Scheduler</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="app-body">
-    
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <h3><i class="fas fa-calendar-alt"></i> Scarlet Scheduler</h3>
-        </div>
-        
-        <div class="nav-links" style="margin-top: 20px;">
-            <a href="{{ url_for('chat_interface') }}" class="nav-item"><i class="fas fa-comments"></i> Chat</a>
-            <a href="{{ url_for('history_dashboard') }}" class="nav-item"><i class="fas fa-history"></i> Course History</a>
-            <a href="{{ url_for('progress_dashboard') }}" class="nav-item active"><i class="fas fa-chart-line"></i> Major Progress</a>
-            <a href="{{ url_for('what_if_dashboard') }}" class="nav-item"><i class="fas fa-random"></i> What-If?</a>
-            <a href="{{ url_for('degree_map_dashboard') }}" class="nav-item"><i class="fas fa-project-diagram"></i> Degree Map</a>
-        </div>
-        
-        <div class="user-profile" style="margin-top: auto;">
-            <div class="user-info">
-                <div class="avatar">{{ user.username[0].upper() }}</div>
-                <span>{{ user.username }}</span>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand-header">
+                <i class="fa-solid fa-brain brand-logo"></i>
+                <span class="brand-text">Scarlet Scheduler</span>
             </div>
-            <a href="{{ url_for('logout') }}" class="btn-logout"><i class="fas fa-sign-out-alt"></i></a>
-        </div>
-    </aside>
-
-    <main class="main-content">
-        <div class="content-header">
-            <h2>Academic Progress Tracker</h2>
-        </div>
-
-        <!-- Add New Tracker Section -->
-        <div class="data-card" style="margin-bottom: 30px;">
-            <h3><i class="fas fa-plus-circle"></i> Add Requirement Tracker</h3>
-            <p style="color: #aaa; margin-bottom: 15px;">Track multiple majors, minors, or certificates simultaneously (Max 5).</p>
             
-            <div class="tracker-input-group">
-                <!-- Searchable Dropdown -->
-                <div class="searchable-dropdown">
-                    <input type="text" id="major-search" placeholder="Type to search (e.g. 'Computer Science', 'Data Science Minor')..." autocomplete="off">
-                    <div id="major-dropdown-list" class="dropdown-list">
-                        <!-- Populated by JS -->
+            <nav class="nav-menu">
+                <a href="/chat" class="nav-item">
+                    <i class="fa-regular fa-comments"></i> Advisor Chat
+                </a>
+                <a href="/history" class="nav-item">
+                    <i class="fa-solid fa-clock-rotate-left"></i> History
+                </a>
+                <a href="#" class="nav-item active">
+                    <i class="fa-solid fa-chart-line"></i> Degree Progress
+                </a>
+                <a href="/what-if" class="nav-item">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> What-If?
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="theme-toggle" id="theme-toggle">
+                    <i class="fa-solid fa-moon"></i>
+                    <span style="font-size:0.8rem; color:var(--text-muted)">Dark Mode</span>
+                    <i class="fa-solid fa-toggle-on" style="color:var(--accent-primary)"></i>
+                </div>
+                
+                {% if current_user.is_authenticated %}
+                <div class="user-mini-profile">
+                    <div class="avatar-circle">{{ current_user.username[0].upper() }}</div>
+                    <div style="flex:1; overflow:hidden;">
+                        <div style="font-weight:600; font-size:0.9rem;">{{ current_user.username }}</div>
+                    </div>
+                    <a href="/logout" title="Logout" style="color:var(--text-muted)"><i class="fa-solid fa-right-from-bracket"></i></a>
+                </div>
+                {% endif %}
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="main-workspace">
+            <div class="dashboard-content">
+                <header class="page-header">
+                    <div class="page-title">
+                        <h2>Degree Progress</h2>
+                        <div class="page-subtitle">Track requirements for your majors and minors.</div>
+                    </div>
+                </header>
+
+                <div class="clean-card">
+                    <h3 style="margin-bottom:15px; font-size:1.1rem;">Add Requirement Tracker</h3>
+                    <div style="display:flex; gap:10px;">
+                        <div class="input-container" style="flex:1; padding:5px 15px; border-radius:12px;">
+                            <input type="text" id="major-search" class="chat-input" placeholder="Search majors (e.g. Computer Science)..." autocomplete="off">
+                        </div>
+                        <button class="btn-primary" onclick="addTracker()" style="width:auto;">Add Tracker</button>
+                    </div>
+                    <div id="major-dropdown-list" style="display:none; background:var(--bg-panel); position:absolute; border:1px solid var(--border-light); width:300px; max-height:200px; overflow-y:auto; border-radius:8px; z-index:100; margin-top:5px;">
                         {% for major in majors %}
-                            <div class="dropdown-item" data-value="{{ major }}">{{ major }}</div>
+                            <div class="dropdown-item" data-value="{{ major }}" style="padding:10px; cursor:pointer; border-bottom:1px solid var(--border-light);">{{ major }}</div>
                         {% endfor %}
                     </div>
                 </div>
-                <button onclick="addTracker()" class="btn btn-primary">Add Tracker</button>
-            </div>
-        </div>
 
-        <!-- Active Trackers Container -->
-        <div id="active-trackers">
-            <!-- Tracker cards will be injected here -->
-        </div>
-
-        <!-- GPA Calculator Section -->
-        <div class="data-card" style="margin-top: 40px;">
-            <h3><i class="fas fa-calculator"></i> GPA Calculator</h3>
-            <div class="gpa-grid">
-                <div><label>Current GPA</label><input type="number" id="current-gpa" placeholder="0.00" step="0.01"></div>
-                <div><label>Credits Completed</label><input type="number" id="credits-completed" placeholder="0"></div>
-            </div>
-            
-            <h4 style="margin-top: 20px;">Hypothetical Semester</h4>
-            <div id="semester-courses">
-                <div class="course-input-row">
-                    <input type="text" placeholder="Course Name" class="course-name">
-                    <input type="number" placeholder="Credits" class="course-credits" value="3">
-                    <select class="course-grade">
-                        <option value="4.0">A</option>
-                        <option value="3.5">B+</option>
-                        <option value="3.0">B</option>
-                        <option value="2.5">C+</option>
-                        <option value="2.0">C</option>
-                        <option value="1.0">D</option>
-                        <option value="0.0">F</option>
-                    </select>
+                <div id="active-trackers" style="display:flex; flex-direction:column; gap:20px;">
+                    <!-- Trackers injected here -->
                 </div>
             </div>
-            <button class="btn btn-sm btn-outline" onclick="addGpaRow()" style="margin-top: 10px;">+ Add Course</button>
-            <div class="gpa-result" id="gpa-result" style="margin-top: 20px; font-size: 1.2rem; font-weight: bold; color: var(--accent-red); display: none;">
-                Predicted GPA: <span id="predicted-gpa">0.00</span>
-            </div>
-            <button class="btn btn-primary" onclick="calculateGpa()" style="margin-top: 15px;">Calculate</button>
-        </div>
-    </main>
-
+        </main>
+    </div>
     <script src="{{ url_for('static', filename='app.js') }}"></script>
-    <style>
-        .tracker-input-group { display: flex; gap: 10px; position: relative; }
-        .searchable-dropdown { flex: 1; position: relative; }
-        .searchable-dropdown input { width: 100%; padding: 12px; background: var(--bg-dark); border: 1px solid var(--border-color); color: white; border-radius: 8px; font-family: var(--font-main); }
-        .dropdown-list { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 100; margin-top: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .dropdown-item { padding: 10px; cursor: pointer; color: var(--text-primary); border-bottom: 1px solid #333; }
-        .dropdown-item:hover { background: var(--accent-red); color: white; }
-        
-        .tracker-card { margin-bottom: 20px; animation: fadeIn 0.3s ease; position: relative; }
-        .tracker-remove { position: absolute; top: 20px; right: 20px; background: transparent; border: none; color: #666; cursor: pointer; font-size: 1.2rem; }
-        .tracker-remove:hover { color: #ff4444; }
-        
-        .bg-darker { background: rgba(0,0,0,0.2); border-radius: 8px; padding: 15px; }
-        .gpa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-        .gpa-grid input { width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: white; border-radius: 8px; }
-        .course-input-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-        .course-input-row input, .course-input-row select { padding: 8px; background: var(--bg-dark); border: 1px solid var(--border-color); color: white; border-radius: 6px; }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
+    <script>
+        // Dropdown Logic for this specific page
+        document.addEventListener('DOMContentLoaded', () => {
+            const input = document.getElementById('major-search');
+            const list = document.getElementById('major-dropdown-list');
+            if(input && list) {
+                input.addEventListener('focus', () => list.style.display = 'block');
+                input.addEventListener('blur', () => setTimeout(() => list.style.display = 'none', 200));
+                list.querySelectorAll('.dropdown-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        input.value = item.getAttribute('data-value');
+                        list.style.display = 'none';
+                    });
+                });
+            }
+        });
+    </script>
 </body>
 </html>
